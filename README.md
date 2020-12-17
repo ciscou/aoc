@@ -1,3 +1,3 @@
 # aoc
 
-My solutions to [adventofcode.com](adventofcode.com)
+My solutions to [adventofcode.com](https://adventofcode.com)
