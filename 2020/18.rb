@@ -428,39 +428,13 @@ module Expressionist
       @a, @op = a, op
     end
 
-    def to_f
-      f = @a.to_f
+    def to_i
+      f = @a.to_i
 
       case @op
       when "+" then  f
       when "-" then -f
       end
-    end
-
-    def to_rpn
-      rpn = @a.to_rpn
-
-      case @op
-      when "+" then  rpn
-      when "-" then [rpn, "-1", "*"].join " "
-      end
-    end
-
-    def to_tree(max_depth)
-      max_width = 6 * 2 ** max_depth
-
-      tree = [
-        @op,
-        "│",
-        "│",
-      ]
-      tree += @a.to_tree(max_depth - 1).lines.map(&:chomp)
-
-      tree.map { |s| s.center(max_width) }.join("\n")
-    end
-
-    def depth
-      @a.depth + 1
     end
   end
 
@@ -469,8 +443,8 @@ module Expressionist
       @a, @b, @op = a, b, op
     end
 
-    def to_f
-      f1, f2 = @a.to_f, @b.to_f
+    def to_i
+      f1, f2 = @a.to_i, @b.to_i
 
       case @op
       when "+" then f1 + f2
@@ -479,38 +453,6 @@ module Expressionist
       when "/" then f1 / f2
       end
     end
-
-    def to_rpn
-      [@a.to_rpn, @b.to_rpn, @op].join " "
-    end
-
-
-    def to_tree(max_depth)
-      max_width = 6 * 2 ** max_depth
-
-      a_tree = @a.to_tree(max_depth - 1).lines.map(&:chomp)
-      b_tree = @b.to_tree(max_depth - 1).lines.map(&:chomp)
-      a_tree << nil while a_tree.length < b_tree.length
-
-      ab_tree = a_tree.zip(b_tree).map do |a, b|
-        a ||= " " * (max_width / 2)
-        b ||= " " * (max_width / 2)
-
-        [a, b].join
-      end
-
-      tree = [
-        @op,
-        "│",
-        "┌#{"┴".center(max_width / 2 - 1, "─")}┐"
-      ]
-      tree += ab_tree
-      tree.map { |s| s.center(max_width) }.join("\n")
-    end
-
-    def depth
-      [@a.depth, @b.depth].max + 1
-    end
   end
 
   class NumberNode
@@ -518,22 +460,8 @@ module Expressionist
       @a = a
     end
 
-    def to_f
-      @a.to_f
-    end
-
-    def to_rpn
-      @a
-    end
-
-    def depth
-      0
-    end
-
-    def to_tree(max_depth)
-      max_width = 6 * 2 ** max_depth
-
-      @a.center(max_width)
+    def to_i
+      @a.to_i
     end
   end
 
@@ -547,16 +475,8 @@ module Expressionist
       self
     end
 
-    def to_f
-      @res.to_f
-    end
-
-    def to_rpn
-      @res.to_rpn
-    end
-
-    def to_tree
-      @res.to_tree(@res.depth)
+    def to_i
+      @res.to_i
     end
 
     private
@@ -607,7 +527,7 @@ module Expressionist
         expression.tap { ensure_next_token_is! ")" }
       when "+", "-"
         UnaryOperatorNode.new(number, token)
-      when /\A[0-9]+(\.[0-9]+)?\z/
+      when /\A[0-9]+\z/
         NumberNode.new(token)
       else raise "Syntax error"
       end
@@ -642,7 +562,7 @@ module Expressionist
       elsif %w[+ - * / ( )].include? @input[0]
         @input.slice! 0
       else
-        @input.slice! %r{\A[0-9]+(\.[0-9]+)?} or raise "Syntax error"
+        @input.slice! %r{\A[0-9]+} or raise "Syntax error"
       end
     end
   end
@@ -651,7 +571,7 @@ end
 part2 = input.lines.sum do |line|
   line.chomp!
 
-  Expressionist::Parser.new.parse(line).to_f
+  Expressionist::Parser.new.parse(line).to_i
 end
 
 puts part2
