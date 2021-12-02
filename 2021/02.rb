@@ -1,34 +1,13 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt'))
 
-class SubmarinePart1
-  def initialize
-    @depth = 0
-    @horizontal_position = 0
-  end
-
-  attr_reader :depth, :horizontal_position
-
-  def down(units)
-    @depth += units
-  end
-
-  def up(units)
-    @depth -= units
-  end
-
-  def forward(units)
-    @horizontal_position += units
-  end
-end
-
-class SubmarinePart2
+class Submarine
   def initialize
     @depth = 0
     @horizontal_position = 0
     @aim = 0
   end
 
-  attr_reader :depth, :horizontal_position
+  attr_reader :depth, :horizontal_position, :aim
 
   def down(units)
     @aim += units
@@ -44,11 +23,8 @@ class SubmarinePart2
   end
 end
 
-def partX(submarine)
-  submarine.instance_eval(INPUT)
+submarine = Submarine.new
+submarine.instance_eval(INPUT)
 
-  submarine.depth * submarine.horizontal_position
-end
-
-puts partX(SubmarinePart1.new)
-puts partX(SubmarinePart2.new)
+puts submarine.horizontal_position * submarine.aim
+puts submarine.horizontal_position * submarine.depth
