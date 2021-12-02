@@ -2,25 +2,9 @@ class Moon
   def initialize(x, y, z)
     @x, @y, @z = x, y, z
     @vx = @vy = @vz = 0
-
-    @initial_x = @x
-    @initial_y = @y
-    @initial_z = @z
-    @initial_vx = @vx
-    @initial_vy = @vy
-    @initial_vz = @vz
   end
 
-  attr_reader :x, :y, :z
-
-  def matches_initial_state?
-    @x == @initial_x &&
-    @y == @initial_y &&
-    @z == @initial_z &&
-    @vx == @initial_vx &&
-    @vy == @initial_vy &&
-    @vz == @initial_vz
-  end
+  attr_reader :x, :y, :z, :vx, :vy, :vz
 
   def total_energy
     potential_energy * kinetic_energy
@@ -101,13 +85,6 @@ class Gravity
   end
 end
 
-moons = [
-  [17,   5,  1],
-  [-2,  -8,  8],
-  [ 7,  -6, 14],
-  [ 1, -10,  4]
-].map { |pos| Moon.new(*pos) }
-
 # moons = [
 #   [-1, 0, 2],
 #   [2, -10, -7],
@@ -115,24 +92,82 @@ moons = [
 #   [3, 5, -1]
 # ].map { |pos| Moon.new(*pos) }
 
-moons = [
-  [-8, -10, 0],
-  [5, 5, 10],
-  [2, -7, 3],
-  [9, -8, -3]
-].map { |pos| Moon.new(*pos) }
+# moons = [
+#   [-8, -10, 0],
+#   [5, 5, 10],
+#   [2, -7, 3],
+#   [9, -8, -3]
+# ].map { |pos| Moon.new(*pos) }
 
 g = Gravity.new
 
-10000000.times do |step|
+prev_x_states = {}
+prev_y_states = {}
+prev_z_states = {}
+
+moons = [
+  [17,   5,  1],
+  [-2,  -8,  8],
+  [ 7,  -6, 14],
+  [ 1, -10,  4]
+].map { |pos| Moon.new(*pos) }
+
+lcm = 1
+
+999_999_999.times do |step|
   moons.combination(2).each { |moons| g.apply(*moons) }
   moons.each(&:move)
 
-  moons.each_with_index do |m, i|
-    if m.matches_initial_state?
-      puts "moon #{i} matches (#{step})"
-    end
+  x_state = moons.map { |m| [m.x, m.vx] }
+
+  if prev_x_states.key?(x_state)
+    lcm = lcm.lcm(step)
+    break
+  else
+    prev_x_states[x_state] = true
   end
 end
 
-puts moons.sum(&:total_energy)
+moons = [
+  [17,   5,  1],
+  [-2,  -8,  8],
+  [ 7,  -6, 14],
+  [ 1, -10,  4]
+].map { |pos| Moon.new(*pos) }
+
+999_999_999.times do |step|
+  moons.combination(2).each { |moons| g.apply(*moons) }
+  moons.each(&:move)
+
+  y_state = moons.map { |m| [m.y, m.vy] }
+
+  if prev_y_states.key?(y_state)
+    lcm = lcm.lcm(step)
+    break
+  else
+    prev_y_states[y_state] = true
+  end
+end
+
+moons = [
+  [17,   5,  1],
+  [-2,  -8,  8],
+  [ 7,  -6, 14],
+  [ 1, -10,  4]
+].map { |pos| Moon.new(*pos) }
+
+999_999_999.times do |step|
+  moons.combination(2).each { |moons| g.apply(*moons) }
+  moons.each(&:move)
+
+  z_state = moons.map { |m| [m.z, m.vz] }
+
+  if prev_z_states.key?(z_state)
+    lcm = lcm.lcm(step)
+    break
+  else
+    prev_z_states[z_state] = true
+  end
+end
+
+puts lcm
