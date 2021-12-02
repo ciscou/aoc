@@ -1,41 +1,62 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
-def part1(commands)
-  depth = 0
-  horizontal_position = 0
-
-  commands.each do |direction, units|
-    case direction
-    when "down"
-      depth += units
-    when "up"
-      depth -= units
-    when "forward"
-      horizontal_position += units
-    end
+class SubmarinePart1
+  def initialize
+    @depth = 0
+    @horizontal_position = 0
   end
 
-  [depth, horizontal_position]
+  attr_reader :depth, :horizontal_position
+
+  def down(units)
+    @depth += units
+  end
+
+  def up(units)
+    @depth -= units
+  end
+
+  def forward(units)
+    @horizontal_position += units
+  end
 end
 
-def part2(commands)
-  aim = 0
-  depth = 0
-  horizontal_position = 0
+class SubmarinePart2
+  def initialize
+    @depth = 0
+    @horizontal_position = 0
+    @aim = 0
+  end
 
+  attr_reader :depth, :horizontal_position
+
+  def down(units)
+    @aim += units
+  end
+
+  def up(units)
+    @aim -= units
+  end
+
+  def forward(units)
+    @horizontal_position += units
+    @depth += units * @aim
+  end
+end
+
+def partX(commands, submarine)
   commands.each do |direction, units|
     case direction
     when "down"
-      aim += units
+      submarine.down(units)
     when "up"
-      aim -= units
+      submarine.up(units)
     when "forward"
-      horizontal_position += units
-      depth += aim * units
+      submarine.forward(units)
     end
   end
 
-  [depth, horizontal_position]
+  submarine.depth * submarine.horizontal_position
 end
 
 commands = INPUT.map do |command|
@@ -43,5 +64,5 @@ commands = INPUT.map do |command|
   [direction, units.to_i]
 end
 
-puts part1(commands).inject(:*)
-puts part2(commands).inject(:*)
+puts partX(commands, SubmarinePart1.new)
+puts partX(commands, SubmarinePart2.new)
