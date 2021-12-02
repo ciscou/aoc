@@ -11,6 +11,8 @@ class Group
     @damage = damage
     @attack_type = attack_type
     @initiative = initiative
+
+    @damage += $boost if @type == :immune_system
   end
 
   attr_reader :type, :index, :units, :immunities, :weaknesses, :initiative, :target
@@ -48,7 +50,9 @@ class Group
   def attack!
     return if @target.nil?
 
-    @target.receive_damage!(calculate_damage(@target))
+    damage = calculate_damage(@target)
+
+    @target.receive_damage!(damage)
   end
 
   def receive_damage!(damage)
@@ -59,6 +63,13 @@ class Group
   end
 end
 
+$boost = 40
+
+loop do
+
+p ["$boost", $boost]
+
+deadlock = false
 immune_system = []
 infection = []
 type = nil
@@ -94,32 +105,33 @@ INPUT.each do |line|
 end
 
 loop do
-  puts "Immune System:"
-  immune_system.each do |group|
-    puts "Group #{group.index} contains #{group.units} units"
-  end
-  puts "Infection:"
-  infection.each do |group|
-    puts "Group #{group.index} contains #{group.units} units"
-  end
+  # puts "Immune System:"
+  # immune_system.each do |group|
+  #   puts "Group #{group.index} contains #{group.units} units"
+  # end
+  # puts "Infection:"
+  # infection.each do |group|
+  #   puts "Group #{group.index} contains #{group.units} units"
+  # end
 
   break if [immune_system, infection].any?(&:empty?)
+  break if deadlock
 
-  puts
+  # puts
 
-  infection.each do |group1|
-    immune_system.each do |group2|
-      damage = group1.calculate_damage(group2)
-      puts "Infection group #{group1.index} would deal defending group #{group2.index} #{damage} damage" unless damage == 0
-    end
-  end
+  # infection.each do |group1|
+  #   immune_system.each do |group2|
+  #     damage = group1.calculate_damage(group2)
+  #     puts "Infection group #{group1.index} would deal defending group #{group2.index} #{damage} damage" unless damage == 0
+  #   end
+  # end
 
-  immune_system.each do |group1|
-    infection.each do |group2|
-      damage = group1.calculate_damage(group2)
-      puts "Immune System group #{group1.index} would deal defending group #{group2.index} #{damage} damage" unless damage == 0
-    end
-  end
+  # immune_system.each do |group1|
+  #   infection.each do |group2|
+  #     damage = group1.calculate_damage(group2)
+  #     puts "Immune System group #{group1.index} would deal defending group #{group2.index} #{damage} damage" unless damage == 0
+  #   end
+  # end
 
   selected_targets = []
 
@@ -129,16 +141,39 @@ loop do
     selected_targets << target unless target.nil?
   end
 
-  puts
+  # puts
 
+  total_killed_units = 0
   (immune_system + infection).sort_by(&:initiative).reverse_each do |group|
     killed_units = group.attack!
-    p [group.type, group.index, group.target && group.target.type, group.target && group.target.index, killed_units]
+    total_killed_units += killed_units unless killed_units.nil?
+    # puts [group.type, group.index, group.target && group.target.type, group.target && group.target.index, killed_units].inspect
   end
+
+  deadlock = total_killed_units == 0
 
   immune_system.select! { |group| group.units > 0 }
   infection.select! { |group| group.units > 0 }
 end
 
-puts immune_system.sum(&:units)
-puts infection.sum(&:units)
+# puts "immune system"
+# puts immune_system.sum(&:units)
+# puts "infection"
+# puts infection.sum(&:units)
+
+if deadlock
+  puts "deadlock!"
+  $boost += 1
+elsif immune_system.sum(&:units) > 0
+  puts "victory!"
+  puts "immune system"
+  puts immune_system.sum(&:units)
+  puts "infection"
+  puts infection.sum(&:units)
+  break
+else
+  puts "defeat!"
+  $boost += 1
+end
+
+end
