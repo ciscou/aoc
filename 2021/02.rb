@@ -1,12 +1,21 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
 def part1(commands)
-  commands_by_direction = commands.group_by(&:first)
+  depth = 0
+  horizontal_position = 0
 
-  final_depth = commands_by_direction["down"].map(&:last).sum - commands_by_direction["up"].map(&:last).sum
-  final_horizontal_position = commands_by_direction["forward"].map(&:last).sum
+  commands.each do |direction, units|
+    case direction
+    when "down"
+      depth += units
+    when "up"
+      depth -= units
+    when "forward"
+      horizontal_position += units
+    end
+  end
 
-  [final_depth, final_horizontal_position]
+  [depth, horizontal_position]
 end
 
 def part2(commands)
@@ -14,16 +23,15 @@ def part2(commands)
   depth = 0
   horizontal_position = 0
 
-  commands.each do |command|
-    direction, count = command
+  commands.each do |direction, units|
     case direction
     when "down"
-      aim += count
+      aim += units
     when "up"
-      aim -= count
+      aim -= units
     when "forward"
-      horizontal_position += count
-      depth += aim * count
+      horizontal_position += units
+      depth += aim * units
     end
   end
 
@@ -31,8 +39,8 @@ def part2(commands)
 end
 
 commands = INPUT.map do |command|
-  direction, count = command.split
-  [direction, count.to_i]
+  direction, units = command.split
+  [direction, units.to_i]
 end
 
 puts part1(commands).inject(:*)
