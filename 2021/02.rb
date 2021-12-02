@@ -1,4 +1,4 @@
-INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
+INPUT = File.read(__FILE__.sub('.rb', '.txt'))
 
 class SubmarinePart1
   def initialize
@@ -44,25 +44,11 @@ class SubmarinePart2
   end
 end
 
-def partX(commands, submarine)
-  commands.each do |direction, units|
-    case direction
-    when "down"
-      submarine.down(units)
-    when "up"
-      submarine.up(units)
-    when "forward"
-      submarine.forward(units)
-    end
-  end
+def partX(submarine)
+  submarine.instance_eval(INPUT)
 
   submarine.depth * submarine.horizontal_position
 end
 
-commands = INPUT.map do |command|
-  direction, units = command.split
-  [direction, units.to_i]
-end
-
-puts partX(commands, SubmarinePart1.new)
-puts partX(commands, SubmarinePart2.new)
+puts partX(SubmarinePart1.new)
+puts partX(SubmarinePart2.new)
