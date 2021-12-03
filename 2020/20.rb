@@ -8,34 +8,92 @@ class Tile
     @size = cells.length
   end
 
+  def wetrun!
+    @dryrun = false
+
+    flips = @flips
+    rotations = @rotations
+
+    reset!
+    flips.times { flip! }
+    rotations.times { rotate! }
+  end
+
+  def dryrun!
+    @cached_borders = {}
+
+    2.times do |flips|
+      4.times do |rotations|
+        reset!
+        flips.times { flip! }
+        rotations.times { rotate! }
+
+        @cached_borders[[flips, rotations, :top]] = top
+        @cached_borders[[flips, rotations, :bottom]] = bottom
+        @cached_borders[[flips, rotations, :left]] = left
+        @cached_borders[[flips, rotations, :right]] = right
+      end
+    end
+
+    @dryrun = true
+  end
+
   def reset!
+    @flips = 0
+    @rotations = 0
     @cells = @original_cells
   end
 
   def flip!
+    @flips += 1
+    @flips %= 2
+
+    return if @dryrun
+
     @cells = @cells.map(&:reverse)
   end
 
   def rotate!
+    @rotations += 1
+    @rotations %= 4
+
+    return if @dryrun
+
     @cells = @cells.transpose.map(&:reverse)
   end
 
   attr_reader :id
 
+  def tops
+    @cached_borders.select { |k, v| k.last == :top }.map { |k, v| [k[0], k[1], v] }
+  end
+
+  def lefts
+    @cached_borders.select { |k, v| k.last == :left }.map { |k, v| [k[0], k[1], v] }
+  end
+
   def top
-    encode_border(@cells.first)
+    return @cached_borders[[@flips, @rotations, :top]] if @dryrun
+
+    @cells.first
   end
 
   def bottom
-    encode_border(@cells.last)
+    return @cached_borders[[@flips, @rotations, :bottom]] if @dryrun
+
+    @cells.last
   end
 
   def left
-    encode_border(@size.times.map { |i| @cells[i][0] })
+    return @cached_borders[[@flips, @rotations, :left]] if @dryrun
+
+    @size.times.map { |i| @cells[i][0] }
   end
 
   def right
-    encode_border(@size.times.map { |i| @cells[i][@size-1] })
+    return @cached_borders[[@flips, @rotations, :right]] if @dryrun
+
+    @size.times.map { |i| @cells[i][@size-1] }
   end
 
   def can_go_right_to?(other_tile)
@@ -103,12 +161,6 @@ class Tile
 
     sea_monsters_count
   end
-
-  private
-
-  def encode_border(border)
-    border.map { |c| c == "#" ? 1 : 0 }.join.to_i(2)
-  end
 end
 
 def valid_partial_solution?(solution)
@@ -128,6 +180,8 @@ tiles = INPUT.each_slice(12).map do |lines|
   Tile.new(id: lines[0].split(" ").last.to_i, cells: lines[1, 10].map(&:chars))
 end
 
+tiles.each(&:dryrun!)
+
 SQUARE_SIZE = Math.sqrt(tiles.size).round
 
 queue = []
@@ -142,10 +196,18 @@ end
 
 solution = nil
 
+tiles_with_top = Hash.new { |h, k| h[k] = [] }
+tiles_with_left = Hash.new { |h, k| h[k] = [] }
+
+tiles.each_with_index do |tile, i|
+  tile.tops.each { |top| tiles_with_top[top.last] << [i, top[0], top[1]] }
+  tile.lefts.each { |left| tiles_with_left[left.last] << [i, left[0], left[1]] }
+end
+
 until queue.empty?
   tiles_specs = queue.pop
 
-  available = tiles.length.times.to_a
+  available = tiles.length.times.to_a.group_by(&:itself)
 
   arrangement = tiles_specs.map do |idx, flip, rotate|
     available.delete(idx)
@@ -159,12 +221,15 @@ until queue.empty?
 
   next unless valid_partial_solution?(arrangement)
 
-  available.each do |idx|
-    2.times do |flip|
-      4.times do |rotate|
-        queue << tiles_specs + [[idx, flip, rotate]]
-      end
-    end
+  bottoms = arrangement.map(&:bottom)
+  rights = arrangement.map(&:right)
+
+  candidates = bottoms.flat_map { |bottom| tiles_with_top[bottom] } + rights.flat_map { |right| tiles_with_left[right] }
+  candidates.uniq!
+  candidates.select! { |candidate| available.key?(candidate.first) }
+
+  candidates.each do |candidate|
+    queue << tiles_specs + [candidate]
   end
 
   if arrangement.length == tiles.length
@@ -178,6 +243,8 @@ if solution.nil?
 else
   puts [0, SQUARE_SIZE - 1, solution.length - SQUARE_SIZE, solution.length - 1].map { |idx| solution[idx].id }.inject(:*)
 end
+
+solution.each(&:wetrun!)
 
 sea_monsters_image = []
 (SQUARE_SIZE * 8).times { sea_monsters_image << [] }
