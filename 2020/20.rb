@@ -4,56 +4,45 @@ class Tile
   def initialize(id:, cells:)
     @id = id
     @cells = cells
+    @original_cells = cells
     @flips = 0
     @rotations = 0
+    @size = cells.length
   end
 
   def reset!
     @flips = 0
     @rotations = 0
+    @cells = @original_cells
   end
 
   def flip!
     @flips += 1
     @flips %= 2
+    @cells = @cells.map(&:reverse)
   end
 
   def rotate!
     @rotations += 1
     @rotations %= 4
+    @cells = @cells.transpose.map(&:reverse)
   end
 
   def encode_borders
     @borders = {}
 
-    2.times do |flip|
-      4.times do |rotate|
-        cells = @cells.map { |row| row.map { |cell| cell } }
+    2.times do |flips|
+      4.times do |rotations|
+        reset!
+        flips.times { flip! }
+        rotations.times { rotate! }
 
-        flip.times do
-          cells.first.reverse!
-          cells.last.reverse!
-
-          (1..8).each do |i|
-            cells[i][0], cells[i][9] = cells[i][9], cells[i][0]
-          end
-        end
-
-        rotate.times do
-          tmp = cells[0].map { |cell| cell }
-
-          10.times { |i| cells[0][i] = cells[9-i][0] }
-          10.times { |i| cells[i][0] = cells[9][i] }
-          10.times { |i| cells[9][i] = cells[9-i][9] }
-          10.times { |i| cells[i][9] = tmp[i] }
-        end
-
-        @borders[flip] ||= {}
-        @borders[flip][rotate] ||= {}
-        @borders[flip][rotate][:top] = encode_border(cells.first)
-        @borders[flip][rotate][:bottom] = encode_border(cells.last)
-        @borders[flip][rotate][:left] = encode_border(10.times.map { |i| cells[i][0] })
-        @borders[flip][rotate][:right] = encode_border(10.times.map { |i| cells[i][9] })
+        @borders[flips] ||= {}
+        @borders[flips][rotations] ||= {}
+        @borders[flips][rotations][:top] = encode_border(@cells.first)
+        @borders[flips][rotations][:bottom] = encode_border(@cells.last)
+        @borders[flips][rotations][:left] = encode_border(@size.times.map { |i| @cells[i][0] })
+        @borders[flips][rotations][:right] = encode_border(@size.times.map { |i| @cells[i][@size-1] })
       end
     end
   end
@@ -84,6 +73,10 @@ class Tile
     other_tile.bottom == top
   end
 
+  def cell_at
+    
+  end
+
   private
 
   def encode_border(border)
@@ -91,24 +84,14 @@ class Tile
   end
 end
 
-def valid_arrangement?(arrangement)
-  square = []
-  SQUARE_SIZE.times do |i|
-    square << []
-    SQUARE_SIZE.times do |j|
-      square.last << arrangement[i * SQUARE_SIZE + j]
-    end
-  end
+def valid_solution?(solution)
+  solution.each_with_index do |tile, index|
+    next if tile.nil?
 
-  SQUARE_SIZE.times do |row|
-    SQUARE_SIZE.times do |col|
-      tile = square[row][col]
+    row, col = index.divmod(SQUARE_SIZE)
 
-      next if tile.nil?
-
-      return false if row > 0 && !tile.can_go_below?(square[row-1][col])
-      return false if col > 0 && !tile.can_go_right_to?(square[row][col-1])
-    end
+    return false if row > 0 && !tile.can_go_below?(solution[(row - 1) * SQUARE_SIZE + col])
+    return false if col > 0 && !tile.can_go_right_to?(solution[row * SQUARE_SIZE + (col - 1)])
   end
 
   true
@@ -123,13 +106,11 @@ tiles.each(&:encode_borders)
 SQUARE_SIZE = Math.sqrt(tiles.size).round
 
 queue = []
-# visited = {}
 
 tiles.length.times do |idx|
   2.times do |flip|
     4.times do |rotate|
       queue << [[idx, flip, rotate]]
-      # visited[[idx, flip, rotate]] = true
     end
   end
 end
@@ -142,7 +123,6 @@ until queue.empty?
 
   if tiles_specs.size > max_tiles_specs_size
     max_tiles_specs_size = tiles_specs.size
-    # p tiles_specs
     puts max_tiles_specs_size
   end
 
@@ -158,7 +138,7 @@ until queue.empty?
     tile
   end
 
-  next unless valid_arrangement?(arrangement)
+  next unless valid_solution?(arrangement)
 
   available.each do |idx|
     2.times do |flip|
@@ -169,6 +149,7 @@ until queue.empty?
   end
 
   if arrangement.length == tiles.length
+    p tiles_specs
     solution = arrangement
     break
   end
