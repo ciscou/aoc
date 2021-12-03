@@ -1,17 +1,20 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
-def part1
-  counts = INPUT.each_with_object({ "0" => Hash.new(0), "1" => Hash.new(0) }) do |e, a|
+def count_bits(numbers)
+  length = numbers.first.length
+
+  numbers.each_with_object({ "0" => Array.new(length, 0), "1" => Array.new(length, 0) }) do |e, a|
     e.chars.each_with_index do |b, i|
       a[b][i] += 1
     end
   end
+end
 
-  counts_0 = counts["0"].to_a.sort.map(&:last)
-  counts_1 = counts["1"].to_a.sort.map(&:last)
+def part1
+  counts = count_bits(INPUT)
 
-  γ = counts_0.zip(counts_1).map { |c0, c1| c0 > c1 ? "0" : "1" }.join
-  ε = counts_0.zip(counts_1).map { |c0, c1| c0 < c1 ? "0" : "1" }.join
+  γ = counts["0"].zip(counts["1"]).map { |c0, c1| c0 > c1 ? "0" : "1" }.join
+  ε = counts["0"].zip(counts["1"]).map { |c0, c1| c0 < c1 ? "0" : "1" }.join
 
   [γ, ε].map { |s| s.to_i(2) }
 end
@@ -21,18 +24,11 @@ def find_o2(numbers, offset)
     return numbers.first
   end
 
-  counts = numbers.each_with_object({ "0" => [], "1" => [] }) do |e, a|
-    e.chars.each_with_index do |b, i|
-      a["0"][i] ||= 0
-      a["1"][i] ||= 0
-      a[b][i] += 1
-    end
-  end
+  counts = count_bits(numbers)
 
-  most_common = counts["0"][offset] > counts["1"][offset] ? "0" : "1"
-  most_common = "1" if counts["0"][offset] == counts["1"][offset]
+  keep = counts["0"][offset] > counts["1"][offset] ? "0" : "1"
 
-  find_o2(numbers.select { |n| n[offset] == most_common }, offset + 1)
+  find_o2(numbers.select { |n| n[offset] == keep }, offset + 1)
 end
 
 def find_co2(numbers, offset)
@@ -40,18 +36,11 @@ def find_co2(numbers, offset)
     return numbers.first
   end
 
-  counts = numbers.each_with_object({ "0" => [], "1" => [] }) do |e, a|
-    e.chars.each_with_index do |b, i|
-      a["0"][i] ||= 0
-      a["1"][i] ||= 0
-      a[b][i] += 1
-    end
-  end
+  counts = count_bits(numbers)
 
-  least_common = counts["0"][offset] < counts["1"][offset] ? "0" : "1"
-  least_common = "0" if counts["0"][offset] == counts["1"][offset]
+  keep = counts["0"][offset] <= counts["1"][offset] ? "0" : "1"
 
-  find_co2(numbers.select { |n| n[offset] == least_common }, offset + 1)
+  find_co2(numbers.select { |n| n[offset] == keep }, offset + 1)
 end
 
 def part2
