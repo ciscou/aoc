@@ -19,28 +19,25 @@ def part1
   [γ, ε].map { |s| s.to_i(2) }
 end
 
-def find_o2(numbers, offset)
-  if numbers.length == 1
-    return numbers.first
-  end
+def find_by_criteria(numbers, offset, &criteria)
+  return numbers.first if numbers.length == 1
 
   counts = count_bits(numbers)
+  keep = criteria.call(counts["0"][offset], counts["1"][offset])
 
-  keep = counts["0"][offset] > counts["1"][offset] ? "0" : "1"
+  find_by_criteria(numbers.select { |n| n[offset] == keep }, offset + 1, &criteria)
+end
 
-  find_o2(numbers.select { |n| n[offset] == keep }, offset + 1)
+def find_o2(numbers, offset)
+  find_by_criteria(numbers, offset) do |c0, c1|
+    c0 > c1 ? "0" : "1"
+  end
 end
 
 def find_co2(numbers, offset)
-  if numbers.length == 1
-    return numbers.first
+  find_by_criteria(numbers, offset) do |c0, c1|
+    c0 <= c1 ? "0" : "1"
   end
-
-  counts = count_bits(numbers)
-
-  keep = counts["0"][offset] <= counts["1"][offset] ? "0" : "1"
-
-  find_co2(numbers.select { |n| n[offset] == keep }, offset + 1)
 end
 
 def part2
