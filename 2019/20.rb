@@ -51,21 +51,31 @@ class Maze
       @portals[p1] = p2
       @portals[p2] = p1
     end
+
+    @level = 0
   end
 
   def move(drow, dcol)
-    @last_row, @last_col = @row, @col
+    @last_row, @last_col, @last_level = @row, @col, @level
 
     @row += drow
     @col += dcol
 
     if ("A".."Z").include?(cell) && @portals.key?([@last_row, @last_col])
-      @row, @col = @portals[[@last_row, @last_col]]
+      if @last_row == 2 || @last_col == 2 || @last_row + 3 == @cells.length || @last_col + 3 == @cells.first.length
+        if @level > 0
+          @level -= 1
+          @row, @col = @portals[[@last_row, @last_col]]
+        end
+      else
+        @level += 1
+        @row, @col = @portals[[@last_row, @last_col]]
+      end
     end
   end
 
   def undo_last_move
-    @row, @col = @last_row, @last_col
+    @row, @col, @level = @last_row, @last_col, @last_level
   end
 
   def valid_position?
@@ -73,10 +83,8 @@ class Maze
     return false if @col < 0
     return false if @row >= @cells.length
     return false if @col >= @cells.first.length
-    return false if cell == "#"
-    return false if cell == " "
 
-    true
+    cell == "."
   end
 
   def cell
@@ -84,6 +92,8 @@ class Maze
   end
 
   def solved?
+    return false unless @level == 0
+
     [@row, @col] == @labels["ZZ"].first
   end
 
@@ -91,13 +101,13 @@ class Maze
     visited = {}
     queue = []
 
-    visited[[@row, @col]] = true
-    queue.push([@row, @col, 0])
+    visited[[@row, @col, @level]] = true
+    queue.push([@row, @col, @level, 0])
 
     until queue.empty?
       node = queue.shift
 
-      @row, @col, moves = node
+      @row, @col, @level, moves = node
 
       if solved? # TODO
         puts "solved in #{moves} moves"
@@ -107,9 +117,9 @@ class Maze
       available_moves = [[-1, 0], [1, 0], [0, -1], [0, 1]]
       available_moves.each do |drow, dcol|
         move(drow, dcol)
-        if valid_position? && !visited[[@row, @col]]
-          visited[[@row, @col]] = true
-          queue.push([@row, @col, moves + 1])
+        if valid_position? && !visited[[@row, @col, @level]]
+          visited[[@row, @col, @level]] = true
+          queue.push([@row, @col, @level, moves + 1])
         end
         undo_last_move
       end
