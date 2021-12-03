@@ -221,8 +221,14 @@ until queue.empty?
 
   next unless valid_partial_solution?(arrangement)
 
-  bottoms = arrangement.map(&:bottom)
-  rights = arrangement.map(&:right)
+  bottoms = []
+  rights = []
+
+  if arrangement.size % SQUARE_SIZE == 0
+    bottoms << arrangement[(arrangement.size - 1) / SQUARE_SIZE * SQUARE_SIZE].bottom
+  else
+    rights << arrangement.last.right
+  end
 
   candidates = bottoms.flat_map { |bottom| tiles_with_top[bottom] } + rights.flat_map { |right| tiles_with_left[right] }
   candidates.uniq!
