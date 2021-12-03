@@ -10,11 +10,15 @@ def count_bits(numbers)
   end
 end
 
-def part1
-  counts = count_bits(INPUT)
+def reduce_numbers(numbers, &criteria)
+  counts = count_bits(numbers)
 
-  γ = counts["0"].zip(counts["1"]).map { |c0, c1| c0 > c1 ? "0" : "1" }.join
-  ε = counts["0"].zip(counts["1"]).map { |c0, c1| c0 < c1 ? "0" : "1" }.join
+  counts["0"].zip(counts["1"]).map(&criteria).join
+end
+
+def part1
+  γ = reduce_numbers(INPUT) { |c0, c1| c0 > c1 ? "0" : "1" }
+  ε = reduce_numbers(INPUT) { |c0, c1| c0 < c1 ? "0" : "1" }
 
   [γ, ε].map { |s| s.to_i(2) }
 end
@@ -29,15 +33,11 @@ def find_by_criteria(numbers, offset, &criteria)
 end
 
 def find_o2(numbers, offset)
-  find_by_criteria(numbers, offset) do |c0, c1|
-    c0 > c1 ? "0" : "1"
-  end
+  find_by_criteria(numbers, offset) { |c0, c1| c0 > c1 ? "0" : "1" }
 end
 
 def find_co2(numbers, offset)
-  find_by_criteria(numbers, offset) do |c0, c1|
-    c0 <= c1 ? "0" : "1"
-  end
+  find_by_criteria(numbers, offset) { |c0, c1| c0 > c1 ? "1" : "0" }
 end
 
 def part2
