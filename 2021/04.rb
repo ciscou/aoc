@@ -6,7 +6,11 @@ class Board
     @seen = {}
   end
 
+  attr_reader :last_number
+
   def see!(number)
+    @last_number = number
+
     5.times do |row|
       5.times do |col|
         @seen[[row, col]] = true if @cells[row][col] == number
@@ -15,24 +19,20 @@ class Board
   end
 
   def solved?
-    5.times do |i|
-      return true if 5.times.all? { |j| @seen[[i, j]] }
-      return true if 5.times.all? { |j| @seen[[j, i]] }
-    end
+    5.times.any? do |i|
+      solved_row = 5.times.all? { |j| @seen[[i, j]] }
+      solved_col = 5.times.all? { |j| @seen[[j, i]] }
 
-    false
+      solved_row || solved_col
+    end
   end
 
   def score
-    res = 0
-
-    5.times do |row|
-      5.times do |col|
-        res += @cells[row][col] unless @seen[[row, col]]
+    5.times.sum do |row|
+      5.times.sum do |col|
+        @seen[[row, col]] ? 0 : @cells[row][col]
       end
     end
-
-    res
   end
 
   def inspect
@@ -48,9 +48,7 @@ boards = INPUT[1..-1].each_slice(6).map do |slice|
 end
 
 winner = nil
-winner_last_number = nil
 loser = nil
-loser_last_number = nil
 
 numbers.each do |number|
   boards.each { |b| b.see!(number) }
@@ -58,13 +56,8 @@ numbers.each do |number|
   solved_boards = boards.select(&:solved?)
 
   solved_boards.each do |solved_board|
-    unless winner
-      winner = solved_board
-      winner_last_number = number
-    end
-
+    winner ||= solved_board
     loser = solved_board
-    loser_last_number = number
   end
 
   boards -= solved_boards
@@ -72,5 +65,5 @@ numbers.each do |number|
   break if boards.empty?
 end
 
-puts winner.score * winner_last_number
-puts loser.score * loser_last_number
+puts winner.score * winner.last_number
+puts loser.score * loser.last_number
