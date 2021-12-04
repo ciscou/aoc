@@ -221,16 +221,17 @@ until queue.empty?
 
   next unless valid_partial_solution?(arrangement)
 
-  bottoms = []
-  rights = []
+
+  candidates = []
 
   if arrangement.size % SQUARE_SIZE == 0
-    bottoms << arrangement[(arrangement.size - 1) / SQUARE_SIZE * SQUARE_SIZE].bottom
+    last_piece = arrangement[(arrangement.size - 1) / SQUARE_SIZE * SQUARE_SIZE]
+    candidates += tiles_with_top[last_piece.bottom]
   else
-    rights << arrangement.last.right
+    last_piece = arrangement.last
+    candidates += tiles_with_left[last_piece.right]
   end
 
-  candidates = bottoms.flat_map { |bottom| tiles_with_top[bottom] } + rights.flat_map { |right| tiles_with_left[right] }
   candidates.uniq!
   candidates.select! { |candidate| available.key?(candidate.first) }
 
