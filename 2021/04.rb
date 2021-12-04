@@ -47,17 +47,30 @@ boards = INPUT[1..-1].each_slice(6).map do |slice|
   Board.new(cells)
 end
 
-solved = []
-last = nil
+winner = nil
+winner_last_number = nil
+loser = nil
+loser_last_number = nil
 
 numbers.each do |number|
-  last = number
   boards.each { |b| b.see!(number) }
 
-  solved = boards.select(&:solved?)
-  break if solved.any?
+  solved_boards = boards.select(&:solved?)
+
+  solved_boards.each do |solved_board|
+    unless winner
+      winner = solved_board
+      winner_last_number = number
+    end
+
+    loser = solved_board
+    loser_last_number = number
+  end
+
+  boards -= solved_boards
+
+  break if boards.empty?
 end
 
-puts solved.first.score
-puts last
-puts solved.first.score * last
+puts winner.score * winner_last_number
+puts loser.score * loser_last_number
