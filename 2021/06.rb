@@ -7,7 +7,7 @@ def evolve(days)
     days.times do
       spawn = population.shift
       population[6] += spawn
-      population[8] = span
+      population[8] = spawn
     end
   end
 end
