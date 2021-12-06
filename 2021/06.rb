@@ -2,7 +2,7 @@ INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
 def evolve(days)
   ([0] * 9).tap do |population|
-    INPUT.map(&:to_i).each { |n| population[n] += 1 }
+    INPUT.first.split(",").map(&:to_i).each { |n| population[n] += 1 }
 
     days.times do
       spawn = population.shift
