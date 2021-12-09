@@ -68,13 +68,14 @@
       Grid.prototype.prepareToCalculateThreeLargestBasinSizes = function() {
         const lowPointsPositions = this.lowPointsPositions()
         const visited = {}
+        const queue = lowPointsPositions.map(lpp => [lpp])
 
         lowPointsPositions.forEach(pos => visited[pos] = true)
 
         this.calculatingThreeLargestBasinSizesState = {
           basinSizes: lowPointsPositions.map(_lpp => 0),
           visited: visited,
-          queue: lowPointsPositions.map(lpp => [lpp])
+          queue: queue
         }
       }
 
@@ -126,7 +127,11 @@
 
           const cells = inputTextarea.value.split("\n").map(row => row.split("").map(n => parseInt(n)))
           const grid = new Grid(cells)
-          const cellSize = Math.min(canvas.width / grid.width, canvas.height / grid.height)
+          const cellSize = 1;
+          canvas.style.width = "600px"
+          canvas.style.height = `${Math.round(600 * grid.height / grid.width)}px`
+          canvas.width = grid.width * cellSize;
+          canvas.height = grid.height * cellSize;
 
           part1OutputSpan.innerText = (grid.lowPoints().map(lp => lp + 1).reduce((a, e) => a + e))
 
@@ -166,6 +171,6 @@
     <label>part 2 solution:</label>
     <span id="part-2-output">-</span><br/>
     <br/>
-    <canvas id="canvas" width="600" height="600"></canvas>
+    <canvas id="canvas" width="100" height="100" style="width: 600px; height: 600px"></canvas>
   </body>
 </html>
