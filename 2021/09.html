@@ -43,30 +43,36 @@
         return this.lowPointsPositions().map(([row, col]) => this.cells[row][col])
       }
 
-      Grid.prototype.basinSizeTick = function() {
+      Grid.prototype.basinSizeTick = function(index) {
         const state = this.calculatingThreeLargestBasinSizesState
 
-        const [row, col] = state.queue.shift()
+        const visited = state.visited[index]
+        const queue = state.queue[index]
 
-        if(!state.visited[[row, col]] && this.cells[row][col] < 9) {
-          state.visited[[row, col]] = true
+        if(queue.length === 0) {
+          return
+        }
+
+        const [row, col] = queue.shift()
+
+        if(!visited[[row, col]] && this.cells[row][col] < 9) {
+          visited[[row, col]] = true
           const color = this.cells[row][col] * 25
           state.canvasCtx.fillStyle = "rgb(" + color + ", " + color + ", " + color + ")"
           state.canvasCtx.fillRect(col * 4, row * 4, 4, 4)
           this.neightboursPositions(row, col).forEach(pos => {
-            if(!state.visited[pos] && this.cells[pos[0]][pos[1]] < 9) {
-              state.queue.push(pos)
+            if(!visited[pos] && this.cells[pos[0]][pos[1]] < 9) {
+              queue.push(pos)
             }
           })
 
-          return 1
+          state.basinSizes[index]++
         }
-
-        return 0
       }
 
       Grid.prototype.prepareToCalculateThreeLargestBasinSizes = function() {
         const lowPointsPositions = this.lowPointsPositions()
+
         const canvas = document.getElementById("canvas")
         const canvasCtx = canvas.getContext("2d")
 
@@ -78,30 +84,24 @@
 
         this.calculatingThreeLargestBasinSizesState = {
           canvasCtx: canvasCtx,
-          basinSizes: [0],
-          visited: {},
-          queue: [lowPointsPositions[0]],
-          lowPointsPositions: lowPointsPositions,
-          lowPointsPositionsIndex: 0
+          basinSizes: lowPointsPositions.map(_lpp => 0),
+          visited: lowPointsPositions.map(_lpp => new Object()),
+          queue: lowPointsPositions.map(lpp => [lpp])
         }
       }
 
       Grid.prototype.calculateThreeLargestBasinSizesTick = function() {
         const state = this.calculatingThreeLargestBasinSizesState
 
-        if(state.queue.length > 0) {
-          state.basinSizes[state.lowPointsPositionsIndex] += this.basinSizeTick()
-        } else {
-          state.lowPointsPositionsIndex++
-          state.queue = [state.lowPointsPositions[state.lowPointsPositionsIndex]]
-          state.basinSizes.push(0)
+        for(let i=0; i<state.basinSizes.length; i++) {
+          this.basinSizeTick(i)
         }
       }
 
       Grid.prototype.calculateThreeLargestBasinSizesDone = function() {
         const state = this.calculatingThreeLargestBasinSizesState
 
-        return state.lowPointsPositionsIndex >= state.lowPointsPositions.length
+        return state.queue.every(q => q.length === 0)
       }
 
       Grid.prototype.threeLargestBasinSizes = function() {
@@ -126,12 +126,19 @@
           part1OutputDiv.innerText = (grid.lowPoints().map(lp => lp + 1).reduce((a, e) => a + e))
           grid.prepareToCalculateThreeLargestBasinSizes()
 
+          let ticks = 0
           const tick = function() {
-            if(grid.calculateThreeLargestBasinSizesDone()) {
-              part2OutputDiv.innerText = (grid.threeLargestBasinSizes().reduce((a, e) => a * e))
-            } else {
-              grid.calculateThreeLargestBasinSizesTick()
+            if(ticks < 2) {
+              ticks++
               requestAnimationFrame(tick)
+            } else {
+              ticks = 0
+              if(grid.calculateThreeLargestBasinSizesDone()) {
+                part2OutputDiv.innerText = (grid.threeLargestBasinSizes().reduce((a, e) => a * e))
+              } else {
+                grid.calculateThreeLargestBasinSizesTick()
+                requestAnimationFrame(tick)
+              }
             }
           }
           requestAnimationFrame(tick)
