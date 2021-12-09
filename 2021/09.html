@@ -46,7 +46,7 @@
       Grid.prototype.basinSizeTick = function(index) {
         const state = this.calculatingThreeLargestBasinSizesState
 
-        const visited = state.visited[index]
+        const visited = state.visited
         const queue = state.queue[index]
         const canvasCtx = state.canvasCtx
         const cellSize = state.cellSize
@@ -89,7 +89,7 @@
           canvasCtx: canvasCtx,
           cellSize: cellSize,
           basinSizes: lowPointsPositions.map(_lpp => 0),
-          visited: lowPointsPositions.map(_lpp => new Object()),
+          visited: {},
           queue: lowPointsPositions.map(lpp => [lpp])
         }
       }
@@ -128,21 +128,20 @@
           const grid = new Grid(cells)
 
           part1OutputSpan.innerText = (grid.lowPoints().map(lp => lp + 1).reduce((a, e) => a + e))
-          grid.prepareToCalculateThreeLargestBasinSizes()
 
+          grid.prepareToCalculateThreeLargestBasinSizes()
           let ticks = 0
           const tick = function() {
-            if(ticks < 2) {
-              ticks++
-              requestAnimationFrame(tick)
+            if(grid.calculateThreeLargestBasinSizesDone()) {
+              part2OutputSpan.innerText = (grid.threeLargestBasinSizes().reduce((a, e) => a * e))
             } else {
-              ticks = 0
-              if(grid.calculateThreeLargestBasinSizesDone()) {
-                part2OutputSpan.innerText = (grid.threeLargestBasinSizes().reduce((a, e) => a * e))
+              if(ticks < 2) {
+                ticks++
               } else {
+                ticks = 0
                 grid.calculateThreeLargestBasinSizesTick()
-                requestAnimationFrame(tick)
               }
+              requestAnimationFrame(tick)
             }
           }
           requestAnimationFrame(tick)
