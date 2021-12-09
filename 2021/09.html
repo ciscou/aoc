@@ -48,8 +48,6 @@
 
         const visited = state.visited
         const queue = state.queue[index]
-        const canvasCtx = state.canvasCtx
-        const cellSize = state.cellSize
 
         if(queue.length === 0) {
           return
@@ -57,39 +55,25 @@
 
         const [row, col] = queue.shift()
 
-        if(!visited[[row, col]] && this.cells[row][col] < 9) {
-          visited[[row, col]] = true
-          const color = this.cells[row][col] * 25
-          canvasCtx.fillStyle = "rgb(" + color + ", " + color + ", " + color + ")"
-          canvasCtx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize)
-          this.neightboursPositions(row, col).forEach(pos => {
-            if(!visited[pos] && this.cells[pos[0]][pos[1]] < 9) {
-              queue.push(pos)
-            }
-          })
+        this.neightboursPositions(row, col).forEach(pos => {
+          if(!visited[pos] && this.cells[pos[0]][pos[1]] < 9) {
+            visited[pos] = true
+            queue.push(pos)
+          }
+        })
 
-          state.basinSizes[index]++
-        }
+        state.basinSizes[index]++
       }
 
       Grid.prototype.prepareToCalculateThreeLargestBasinSizes = function() {
         const lowPointsPositions = this.lowPointsPositions()
+        const visited = {}
 
-        const canvas = document.getElementById("canvas")
-        const canvasCtx = canvas.getContext("2d")
-        const cellSize = Math.min(canvas.width / this.width, canvas.height / this.height)
-
-        canvasCtx.fillStyle = "white"
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height)
-
-        canvasCtx.fillStyle = "red"
-        lowPointsPositions.forEach(([row, col]) => canvasCtx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize))
+        lowPointsPositions.forEach(pos => visited[pos] = true)
 
         this.calculatingThreeLargestBasinSizesState = {
-          canvasCtx: canvasCtx,
-          cellSize: cellSize,
           basinSizes: lowPointsPositions.map(_lpp => 0),
-          visited: {},
+          visited: visited,
           queue: lowPointsPositions.map(lpp => [lpp])
         }
       }
@@ -114,11 +98,27 @@
         return state.basinSizes.sort((a, b) => b - a).slice(0, 3)
       }
 
+      Grid.prototype.draw = function(ctx, cellSize) {
+        const { visited } = this.calculatingThreeLargestBasinSizesState
+
+        ctx.fillStyle = "white"
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        Object.keys(visited).forEach((k) => {
+          const [row, col] = k.split(",").map(s => parseInt(s))
+          const shade = this.cells[row][col] * 25
+          ctx.fillStyle = "rgb(" + shade + ", " + shade + ", " + shade + ")"
+          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize)
+        })
+      }
+
       window.onload = function() {
         const solveButton = document.getElementById("solve")
         const inputTextarea = document.getElementById("input")
         const part1OutputSpan = document.getElementById("part-1-output")
         const part2OutputSpan = document.getElementById("part-2-output")
+
+        const canvas = document.getElementById("canvas")
+        const ctx = canvas.getContext("2d")
 
         solveButton.addEventListener("click", function() {
           part1OutputSpan.innerText = "Calculating..."
@@ -126,6 +126,7 @@
 
           const cells = inputTextarea.value.split("\n").map(row => row.split("").map(n => parseInt(n)))
           const grid = new Grid(cells)
+          const cellSize = Math.min(canvas.width / grid.width, canvas.height / grid.height)
 
           part1OutputSpan.innerText = (grid.lowPoints().map(lp => lp + 1).reduce((a, e) => a + e))
 
@@ -140,6 +141,7 @@
               } else {
                 ticks = 0
                 grid.calculateThreeLargestBasinSizesTick()
+                grid.draw(ctx, cellSize)
               }
               requestAnimationFrame(tick)
             }
