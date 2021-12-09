@@ -205,7 +205,7 @@ tiles.each_with_index do |tile, i|
 end
 
 until queue.empty?
-  tiles_specs = queue.pop
+  tiles_specs = queue.shift
 
   available = tiles.length.times.to_a.group_by(&:itself)
 

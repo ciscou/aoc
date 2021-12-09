@@ -70,7 +70,7 @@ def bfs(grid)
   at_least_1000 = 0
 
   until queue.empty?
-    x, y, doors = queue.pop
+    x, y, doors = queue.shift
 
     at_least_1000 += 1 if doors >= 1_000
 
