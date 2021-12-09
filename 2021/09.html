@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>AOC 2021 day 9</title>
+    <script charset="utf-8">
+      const Grid = function(cells) {
+        this.cells = cells
+        this.height = cells.length
+        this.width = cells[0].length
+      }
+
+      Grid.prototype.neightboursPositions = function(row, col) {
+        return [
+          [row-1, col],
+          [row+1, col],
+          [row, col-1],
+          [row, col+1]
+        ].filter(([row, col]) => row >= 0 && col >= 0 && row < this.height && col < this.width)
+      }
+
+      Grid.prototype.neightbours = function(row, col) {
+        return this.neightboursPositions(row, col).map(([row, col]) => this.cells[row][col])
+      }
+
+      Grid.prototype.lowPointsPositions = function() {
+        const res = []
+
+        for(let row=0; row<this.height; row++) {
+          for(let col=0; col<this.width; col++) {
+            let ns = this.neightbours(row, col)
+            if(ns.every(n => n > this.cells[row][col])) {
+              res.push([row, col])
+            }
+          }
+        }
+
+        return res
+      }
+
+      Grid.prototype.lowPoints = function() {
+        return this.lowPointsPositions().map(([row, col]) => this.cells[row][col])
+      }
+
+      Grid.prototype.basinSize = function(row, col) {
+        visited = {}
+        queue = [[row, col]]
+        res = 0
+
+        while(queue.length > 0) {
+          const [row, col] = queue.shift()
+
+          if(!visited[[row, col]] && this.cells[row][col] < 9) {
+            visited[[row, col]] = true
+            this.neightboursPositions(row, col).forEach(pos => queue.push(pos))
+
+            res += 1
+          }
+        }
+
+        return res
+      }
+
+      Grid.prototype.threeLargestBasinSizes = function() {
+        return this.lowPointsPositions().map(([row, col]) => this.basinSize(row, col)).sort((a, b) => b - a).slice(0, 3)
+      }
+
+      window.onload = function() {
+        const solveButton = document.getElementById("solve")
+        const inputTextarea = document.getElementById("input")
+        const part1OutputDiv = document.getElementById("part-1-output")
+        const part2OutputDiv = document.getElementById("part-2-output")
+
+        solveButton.addEventListener("click", function() {
+          const cells = inputTextarea.value.split("\n").map(row => row.split("").map(n => parseInt(n)))
+          const grid = new Grid(cells)
+
+          part1OutputDiv.innerText = (grid.lowPoints().map(lp => lp + 1).reduce((a, e) => a + e))
+          part2OutputDiv.innerText = (grid.threeLargestBasinSizes().reduce((a, e) => a * e))
+        })
+      }
+    </script>
+  </head>
+  <body>
+    <textarea id="input" style="width: 100%; height: 100px">2199943210
+3987894921
+9856789892
+8767896789
+9899965678</textarea>
+    <button id="solve">Solve!</button>
+    <div id="part-1-output"></div>
+    <div id="part-2-output"></div>
+  </body>
+</html>
