@@ -43,27 +43,71 @@
         return this.lowPointsPositions().map(([row, col]) => this.cells[row][col])
       }
 
-      Grid.prototype.basinSize = function(row, col) {
-        visited = {}
-        queue = [[row, col]]
-        res = 0
+      Grid.prototype.basinSizeTick = function() {
+        const state = this.calculatingThreeLargestBasinSizesState
 
-        while(queue.length > 0) {
-          const [row, col] = queue.shift()
+        const [row, col] = state.queue.shift()
 
-          if(!visited[[row, col]] && this.cells[row][col] < 9) {
-            visited[[row, col]] = true
-            this.neightboursPositions(row, col).forEach(pos => queue.push(pos))
+        if(!state.visited[[row, col]] && this.cells[row][col] < 9) {
+          state.visited[[row, col]] = true
+          const color = this.cells[row][col] * 25
+          state.canvasCtx.fillStyle = "rgb(" + color + ", " + color + ", " + color + ")"
+          state.canvasCtx.fillRect(col * 4, row * 4, 4, 4)
+          this.neightboursPositions(row, col).forEach(pos => {
+            if(!state.visited[pos] && this.cells[pos[0]][pos[1]] < 9) {
+              state.queue.push(pos)
+            }
+          })
 
-            res += 1
-          }
+          return 1
         }
 
-        return res
+        return 0
+      }
+
+      Grid.prototype.prepareToCalculateThreeLargestBasinSizes = function() {
+        const lowPointsPositions = this.lowPointsPositions()
+        const canvas = document.getElementById("canvas")
+        const canvasCtx = canvas.getContext("2d")
+
+        canvasCtx.fillStyle = "white"
+        canvasCtx.fillRect(0, 0, 400, 400)
+
+        canvasCtx.fillStyle = "red"
+        lowPointsPositions.forEach(([row, col]) => canvasCtx.fillRect(col * 4, row * 4, 4, 4))
+
+        this.calculatingThreeLargestBasinSizesState = {
+          canvasCtx: canvasCtx,
+          basinSizes: [0],
+          visited: {},
+          queue: [lowPointsPositions[0]],
+          lowPointsPositions: lowPointsPositions,
+          lowPointsPositionsIndex: 0
+        }
+      }
+
+      Grid.prototype.calculateThreeLargestBasinSizesTick = function() {
+        const state = this.calculatingThreeLargestBasinSizesState
+
+        if(state.queue.length > 0) {
+          state.basinSizes[state.lowPointsPositionsIndex] += this.basinSizeTick()
+        } else {
+          state.lowPointsPositionsIndex++
+          state.queue = [state.lowPointsPositions[state.lowPointsPositionsIndex]]
+          state.basinSizes.push(0)
+        }
+      }
+
+      Grid.prototype.calculateThreeLargestBasinSizesDone = function() {
+        const state = this.calculatingThreeLargestBasinSizesState
+
+        return state.lowPointsPositionsIndex >= state.lowPointsPositions.length
       }
 
       Grid.prototype.threeLargestBasinSizes = function() {
-        return this.lowPointsPositions().map(([row, col]) => this.basinSize(row, col)).sort((a, b) => b - a).slice(0, 3)
+        const state = this.calculatingThreeLargestBasinSizesState
+
+        return state.basinSizes.sort((a, b) => b - a).slice(0, 3)
       }
 
       window.onload = function() {
@@ -73,11 +117,24 @@
         const part2OutputDiv = document.getElementById("part-2-output")
 
         solveButton.addEventListener("click", function() {
+          part1OutputDiv.innerText = "Calculating..."
+          part2OutputDiv.innerText = "Calculating..."
+
           const cells = inputTextarea.value.split("\n").map(row => row.split("").map(n => parseInt(n)))
           const grid = new Grid(cells)
 
           part1OutputDiv.innerText = (grid.lowPoints().map(lp => lp + 1).reduce((a, e) => a + e))
-          part2OutputDiv.innerText = (grid.threeLargestBasinSizes().reduce((a, e) => a * e))
+          grid.prepareToCalculateThreeLargestBasinSizes()
+
+          const tick = function() {
+            if(grid.calculateThreeLargestBasinSizesDone()) {
+              part2OutputDiv.innerText = (grid.threeLargestBasinSizes().reduce((a, e) => a * e))
+            } else {
+              grid.calculateThreeLargestBasinSizesTick()
+              requestAnimationFrame(tick)
+            }
+          }
+          requestAnimationFrame(tick)
         })
       }
     </script>
@@ -91,5 +148,6 @@
     <button id="solve">Solve!</button>
     <div id="part-1-output"></div>
     <div id="part-2-output"></div>
+    <canvas id="canvas" width="400" height="400"></canvas>
   </body>
 </html>
