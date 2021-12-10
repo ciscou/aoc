@@ -1,159 +1,213 @@
-INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
-
-$max_moves = 0
-$max_collected_keys = 0
+INPUT = File.read(__FILE__.sub('.rb', '_example.txt')).lines.map(&:chomp)
 
 class Maze
   def initialize
     @cells = INPUT.map(&:chars)
 
-    @keys = []
+    @available_keys = {}
 
     @cells.length.times do |row|
       @cells.first.length.times do |col|
         cell = @cells[row][col]
-        @keys << cell if ("a".."z").include?(cell)
-        @row, @col = [row, col] if cell == "@"
+        @available_keys[cell] = [row, col] if ("a".."z").include?(cell)
+        if cell == "@"
+          @robot = [row, col]
+          @cells[row][col] = "."
+        end
       end
     end
 
     @collected_keys = []
+
+    @cached_paths = {}
   end
 
-  def setup_part_1!
-    @row = [@row]
-    @col = [@col]
+  attr_reader :robot, :available_keys
+
+  def move(robot, drow, dcol)
+    robot[0] += drow
+    robot[1] += dcol
   end
 
-  def setup_part_2!
-    @cells[@row][@col] = "#"
+  def valid_position?(robot)
+    return false if robot[0] < 0
+    return false if robot[1] < 0
+    return false if robot[0] >= @cells.length
+    return false if robot[1] >= @cells.first.length
 
-    @cells[@row+1][@col] = "#"
-    @cells[@row-1][@col] = "#"
-    @cells[@row][@col+1] = "#"
-    @cells[@row][@col-1] = "#"
+    cell = cell(robot)
 
-    @cells[@row+1][@col+1] = "@"
-    @cells[@row+1][@col-1] = "@"
-    @cells[@row-1][@col+1] = "@"
-    @cells[@row-1][@col-1] = "@"
-
-    @row = []
-    @col = []
-
-    @cells.length.times do |row|
-      @cells.first.length.times do |col|
-        cell = @cells[row][col]
-        @keys << cell if ("a".."z").include?(cell)
-        if cell == "@"
-          @row << row
-          @col << col
-        end
-      end
-    end
-  end
-
-  def move(index, drow, dcol)
-    @row[index] += drow
-    @col[index] += dcol
-  end
-
-  def valid_position?
-    @row.length.times do |index|
-      return false if @row[index] < 0
-      return false if @col[index] < 0
-      return false if @row[index] >= @cells.length
-      return false if @col[index] >= @cells.first.length
-      return false if cell(index) == "#"
-      return false if ("A".."Z").include?(cell(index)) && !@collected_keys.include?(cell(index).downcase)
-    end
+    return false if cell == "#"
+    return false if ("A".."Z").include?(cell) && !@collected_keys.include?(cell.downcase)
 
     true
   end
 
-  def cell(index)
-    @cells[@row[index]][@col[index]]
+  def cell(robot)
+    @cells[robot[0]][robot[1]]
   end
 
-  def collect_key!(index)
-    if ("a".."z").include?(cell(index)) && !@collected_keys.include?(cell(index))
-      @collected_keys << cell(index)
-      cell(index)
+  def collect_key!(robot)
+    cell = cell(robot)
+    if ("a".."z").include?(cell) && !@collected_keys.include?(cell)
+      @collected_keys << cell
+      cell
     end
   end
 
   def all_keys_collected?
-    (@keys - @collected_keys).empty?
+    remaining_keys.empty?
   end
 
-  def solve
-    visited = {}
-    queue = []
+  def remaining_keys
+    @available_keys.keys - @collected_keys
+  end
 
-    visited[[@row.dup, @col.dup, @collected_keys.sort.join("")]] = true
-    queue.push([@row.dup, @col.dup, @collected_keys.join(""), 0])
+  def calculate_path(from, to)
+    cache_key = [from, to, @collected_keys].inspect
+    if @cached_paths.key?(cache_key)
+      return @cached_paths[cache_key]
+    end
+
+    queue = []
+    visited = {}
+
+    queue.push([from[0], from[1], 0])
+    visited[[from[0], from[1]]] = true
 
     until queue.empty?
-      node = queue.shift
+      row, col, moves = queue.shift
+      robot = [row, col]
 
-      @row, @col, keys, moves = node
-      @collected_keys = keys.split("")
-
-      if moves > $max_moves
-        $max_moves = moves
-        puts "max moves: #{moves}"
+      if robot == to
+        @cached_paths[cache_key] = moves
+        return moves
       end
 
-      if keys.size > $max_collected_keys
-        $max_collected_keys = keys.length
-        puts "max collected keys: #{keys.length}"
-      end
+      [
+        [ 0, -1],
+        [ 1,  0],
+        [ 0,  1],
+        [-1,  0]
+      ].each do |drow, dcol|
+        move(robot, drow, dcol)
 
-      if keys.length == 0
-        if moves > 50
-          next
+        if !visited[[robot[0], robot[1]]] && valid_position?(robot)
+          visited[[robot[0], robot[1]]] = true
+          queue.push([robot[0], robot[1], moves + 1])
         end
-      elsif moves / keys.length > 50
+
+        move(robot, -drow, -dcol)
+      end
+    end
+
+    @cached_paths[cache_key] = nil
+    nil
+  end
+
+  def calculate_path_to_collect_all_keys
+    best = 1_000_000_000_000
+
+    from = [robot[0], robot[1]]
+
+    stack = []
+    visited = Hash.new(Float::INFINITY)
+
+    stack.push([from[0], from[1], "", 0])
+    visited[[from[0], from[1], ""]] = true
+
+    until stack.empty?
+      row, col, collected_keys, total_moves = stack.pop
+      from = [row, col]
+
+      next unless total_moves < best
+
+      @collected_keys = collected_keys.split("")
+
+      if all_keys_collected?
+        puts "found solution with #{total_moves} moves"
+        best = total_moves if total_moves < best
         next
       end
 
-      # if moves > 50
-      #   puts "next"
-      #   next
-      # end
+      candidates = remaining_keys.map { |k| [k, calculate_path(from, available_keys[k])] }
+      candidates.reject! { |c| c.last.nil? }
+      candidates.sort_by!(&:last)
 
-      if all_keys_collected?
-        puts "solved in #{moves} moves"
-        puts "collected keys #{@collected_keys.inspect}"
-        break
-      end
+      candidates.each do |candidate|
+        key, moves = candidate
+        pos = available_keys[key]
+        total_moves += moves
 
-      available_moves = [[-1, 0], [1, 0], [0, -1], [0, 1]]
-      @row.length.times do |index|
-        available_moves.each do |drow, dcol|
-          move(index, drow, dcol)
-          if valid_position? && !visited[[@row.dup, @col.dup, @collected_keys.sort.join("")]]
-            @collected_keys_was = @collected_keys.join("").split("")
-            collect_key!(index)
-            visited[[@row.dup, @col.dup, @collected_keys.sort.join("")]] = true
-            queue.push([@row.dup, @col.dup, @collected_keys.join(""), moves + 1])
-            @collected_keys = @collected_keys_was
-          end
-          move(index, -drow, -dcol)
+        @collected_keys << key
+
+        if total_moves < visited[[pos[0], pos[1], @collected_keys.sort.join("")]]
+          visited[[pos[0], pos[1], @collected_keys.sort.join("")]] = total_moves
+          stack.push([pos[0], pos[1], @collected_keys.sort.join(""), total_moves])
         end
+
+        @collected_keys.delete(key)
+        total_moves -= moves
       end
     end
+
+    best
+  end
+
+  def inspect
+    @cells.length.times.map do |row|
+      @cells[row].length.times.map do |col|
+        cell = @cells[row][col]
+        if @robot == [row, col]
+          "@"
+        elsif @collected_keys.include?(cell)
+          "."
+        else
+          cell
+        end
+      end.join("")
+    end.join("\n")
   end
 end
 
-# start = Time.now
-# maze1 = Maze.new
-# maze1.setup_part_1!
-# maze1.solve
-# puts "solved in #{Time.now - start} seconds"
+maze = Maze.new
+robot = maze.robot
 
-start = Time.now
-maze2 = Maze.new
-maze2.setup_part_2!
-maze2.solve
-puts "solved in #{Time.now - start} seconds"
+puts maze.calculate_path_to_collect_all_keys
+
+# maze.available_keys.each do |k, v|
+#   puts "calculate path to #{k}"
+#   solution = maze.calculate_path(robot, v)
+#   if solution
+#     puts "  solved in #{solution} moves!"
+#   else
+#     puts "  no solution found!"
+#   end
+# end
+
+# while s = gets
+#   move = {
+#     "a" => [ 0, -1],
+#     "s" => [ 1,  0],
+#     "d" => [ 0,  1],
+#     "w" => [-1,  0]
+#   }[s.chomp]
+
+#   if move
+#     maze.move(robot, move[0], move[1])
+#     if maze.valid_position?(robot)
+#       key = maze.collect_key!(robot)
+#       if key
+#         puts "collected key #{key}!!!"
+#         if maze.all_keys_collected?
+#           puts "all keys collected!!!"
+#         end
+#       end
+#     else
+#       puts "invalid!"
+#       maze.move(robot, -move[0], -move[1])
+#     end
+#   end
+
+#   p maze
+# end
