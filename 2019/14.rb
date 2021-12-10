@@ -14,35 +14,31 @@ REACTION_TO_PRODUCE = INPUT.each_with_object({}) do |line, h|
   }
 end
 
-def calculate_ore_for(amount, chemical)
-  leftovers = Hash.new(0)
+def calculate_ore_for(amount, chemical, leftovers = nil)
+  return amount if chemical == "ORE"
+  return 0 if amount == 0
+
+  leftovers ||= Hash.new(0)
+
   reaction = REACTION_TO_PRODUCE[chemical]
+  n = (amount.fdiv(reaction[:output])).ceil
+  leftovers[chemical] += n * reaction[:output] - amount
 
-  inputs = reaction[:inputs].each_with_object(Hash.new(0)) { |(k, v), h| h[k] = v * amount }
+  reaction[:inputs].sum do |k, v|
+    v *= n
+    lo = [v, leftovers[k]].min
+    v -= lo
+    leftovers[k] -= lo
 
-  while input = inputs.detect { |k, v| k != "ORE" }
-    input_chemical, input_amount = input
-    inputs.delete(input_chemical)
-
-    lo = [input_amount, leftovers[input_chemical]].min
-    leftovers[input_chemical] -= lo
-    input_amount -= lo
-
-    r = REACTION_TO_PRODUCE[input_chemical]
-    n = (input_amount.fdiv(r[:output])).ceil
-    r[:inputs].each do |i|
-      c, a = i
-      inputs[c] += n * a
-    end
-    leftovers[input_chemical] += n * r[:output] - input_amount
+    calculate_ore_for(v, k, leftovers)
   end
-
-  inputs["ORE"]
 end
 
 puts calculate_ore_for(1, "FUEL")
 
-low, high = 0, 1_000_000_000_000
+low = 1_000_000_000_000 / calculate_ore_for(1, "FUEL")
+high = low * 2
+
 while (high - low) > 1
   mid = (low + high) / 2
 
@@ -53,4 +49,4 @@ while (high - low) > 1
   end
 end
 
-p [low, high]
+puts low
