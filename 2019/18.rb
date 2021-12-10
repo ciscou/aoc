@@ -57,6 +57,7 @@ end
 
 class Maze
   def initialize
+    @robots = []
     @cells = INPUT.map(&:chars)
 
     @available_keys = {}
@@ -66,7 +67,7 @@ class Maze
         cell = @cells[row][col]
         @available_keys[cell] = [row, col] if ("a".."z").include?(cell)
         if cell == "@"
-          @robot = [row, col]
+          @robots << [row, col]
           @cells[row][col] = "."
         end
       end
@@ -77,7 +78,26 @@ class Maze
     @cached_paths = {}
   end
 
-  attr_reader :robot, :available_keys
+  def four_robots!
+    robot = @robots.first
+
+    @cells[robot[0]][robot[1]] = "#"
+    @cells[robot[0]-1][robot[1]] = "#"
+    @cells[robot[0]+1][robot[1]] = "#"
+    @cells[robot[0]][robot[1]-1] = "#"
+    @cells[robot[0]][robot[1]+1] = "#"
+
+    @robots = [
+      [robot[0]-1, robot[1]-1],
+      [robot[0]-1, robot[1]+1],
+      [robot[0]+1, robot[1]-1],
+      [robot[0]+1, robot[1]+1],
+    ]
+
+    @robots.each do |row, col|
+      @cells[row][col] = "."
+    end
+  end
 
   def move(robot, drow, dcol)
     robot[0] += drow
@@ -163,40 +183,42 @@ class Maze
   end
 
   def calculate_path_to_collect_all_keys
-    from = [robot[0], robot[1]]
-
     pq = PriorityQueue.new
     visited = Hash.new(Float::INFINITY)
 
-    pq.push(state: [from[0], from[1], "", 0], priority: 0)
-    visited[[from[0], from[1], ""]] = 0
+    pq.push(state: [@robots.map { |row, col| [row, col] }, "", 0], priority: 0)
+    visited[[@robots.map { |row, col| [row, col] }, ""]] = 0
 
     loop do
       node = pq.pop
       break if node.nil?
 
-      row, col, collected_keys, total_moves = node[:state]
+      robots, collected_keys, total_moves = node[:state]
 
       @collected_keys = collected_keys.split("")
 
       return total_moves if all_keys_collected?
 
-      next if total_moves > visited[[row, col, @collected_keys.sort.join("")]]
+      next if total_moves > visited[[robots, @collected_keys.sort.join("")]]
 
-      distances = calculate_path([row, col])
-      candidates = remaining_keys.map { |k| [k, distances[k]] }
+      distances = robots.map { |row, col| calculate_path([row, col]) }
+      candidates = []
+      robots.length.times { |i| candidates += remaining_keys.map { |k| [i, k, distances[i][k]] } }
       candidates.reject! { |c| c.last.nil? }
 
       candidates.each do |candidate|
-        key, moves = candidate
-        pos = available_keys[key]
+        index, key, moves = candidate
+        pos = @available_keys[key]
         total_moves += moves
 
         @collected_keys.push(key)
 
-        if total_moves < visited[[pos[0], pos[1], @collected_keys.sort.join("")]]
-          visited[[pos[0], pos[1], @collected_keys.sort.join("")]] = total_moves
-          pq.push(state: [pos[0], pos[1], @collected_keys.join(""), total_moves], priority: -total_moves * @available_keys.length - @collected_keys.length)
+        next_robots = robots.map { |row, col| [row, col] }
+        next_robots[index] = [pos[0], pos[1]]
+
+        if total_moves < visited[[next_robots, @collected_keys.sort.join("")]]
+          visited[[next_robots, @collected_keys.sort.join("")]] = total_moves
+          pq.push(state: [next_robots, @collected_keys.join(""), total_moves], priority: -total_moves * @available_keys.length - @collected_keys.length)
         end
 
         @collected_keys.pop
@@ -204,61 +226,11 @@ class Maze
       end
     end
   end
-
-  def inspect
-    @cells.length.times.map do |row|
-      @cells[row].length.times.map do |col|
-        cell = @cells[row][col]
-        if @robot == [row, col]
-          "@"
-        elsif @collected_keys.include?(cell)
-          "."
-        else
-          cell
-        end
-      end.join("")
-    end.join("\n")
-  end
 end
 
-maze = Maze.new
-robot = maze.robot
+# maze1 = Maze.new
+# puts maze1.calculate_path_to_collect_all_keys
 
-puts maze.calculate_path_to_collect_all_keys
-
-# maze.available_keys.each do |k, v|
-#   puts "calculate path to #{k}"
-#   solution = maze.calculate_path(robot, v)
-#   if solution
-#     puts "  solved in #{solution} moves!"
-#   else
-#     puts "  no solution found!"
-#   end
-# end
-
-# while s = gets
-#   move = {
-#     "a" => [ 0, -1],
-#     "s" => [ 1,  0],
-#     "d" => [ 0,  1],
-#     "w" => [-1,  0]
-#   }[s.chomp]
-
-#   if move
-#     maze.move(robot, move[0], move[1])
-#     if maze.valid_position?(robot)
-#       key = maze.collect_key!(robot)
-#       if key
-#         puts "collected key #{key}!!!"
-#         if maze.all_keys_collected?
-#           puts "all keys collected!!!"
-#         end
-#       end
-#     else
-#       puts "invalid!"
-#       maze.move(robot, -move[0], -move[1])
-#     end
-#   end
-
-#   p maze
-# end
+maze2 = Maze.new
+maze2.four_robots!
+puts maze2.calculate_path_to_collect_all_keys
