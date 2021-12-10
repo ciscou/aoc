@@ -34,19 +34,16 @@ def calculate_ore_for(amount, chemical, leftovers = nil)
   end
 end
 
-puts calculate_ore_for(1, "FUEL")
-
-low = 1_000_000_000_000 / calculate_ore_for(1, "FUEL")
-high = low * 2
-
-while (high - low) > 1
-  mid = (low + high) / 2
-
-  if calculate_ore_for(mid, "FUEL") > 1_000_000_000_000
-    high = mid
-  else
-    low = mid
-  end
+def part1
+  calculate_ore_for(1, "FUEL")
 end
 
-puts low
+def part2
+  low = 1_000_000_000_000 / calculate_ore_for(1, "FUEL")
+  high = low * 2
+
+  (low..high).bsearch { |mid| calculate_ore_for(mid, "FUEL") > 1_000_000_000_000 } - 1
+end
+
+puts part1
+puts part2
