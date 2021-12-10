@@ -118,11 +118,13 @@ class Maze
     @available_keys.keys - @collected_keys
   end
 
-  def calculate_path(from, to)
-    cache_key = [from, to, @collected_keys].inspect
+  def calculate_path(from)
+    cache_key = [from, @collected_keys].inspect
     if @cached_paths.key?(cache_key)
       return @cached_paths[cache_key]
     end
+
+    res = {}
 
     queue = []
     visited = {}
@@ -134,9 +136,9 @@ class Maze
       row, col, moves = queue.shift
       robot = [row, col]
 
-      if robot == to
-        @cached_paths[cache_key] = moves
-        return moves
+      cell = cell(robot)
+      if ("a".."z").include?(cell)
+        res[cell] = moves
       end
 
       [
@@ -156,20 +158,18 @@ class Maze
       end
     end
 
-    @cached_paths[cache_key] = nil
-    nil
+    @cached_paths[cache_key] = res
+    res
   end
 
   def calculate_path_to_collect_all_keys
-    best = 1_000_000_000_000
-
     from = [robot[0], robot[1]]
 
     pq = PriorityQueue.new
     visited = Hash.new(Float::INFINITY)
 
     pq.push(state: [from[0], from[1], "", 0], priority: 0)
-    visited[[from[0], from[1], ""]] = true
+    visited[[from[0], from[1], ""]] = 0
 
     loop do
       node = pq.pop
@@ -178,19 +178,16 @@ class Maze
       row, col, collected_keys, total_moves = node[:state]
       from = [row, col]
 
-      next unless total_moves < best
-
       @collected_keys = collected_keys.split("")
 
       if all_keys_collected?
         puts "found solution with #{total_moves} moves"
-        best = total_moves if total_moves < best
-        next
+        return total_moves
       end
 
-      candidates = remaining_keys.map { |k| [k, calculate_path(from, available_keys[k])] }
+      distances = calculate_path(from)
+      candidates = remaining_keys.map { |k| [k, distances[k]] }
       candidates.reject! { |c| c.last.nil? }
-      candidates.sort_by!(&:last)
 
       candidates.each do |candidate|
         key, moves = candidate
@@ -201,15 +198,13 @@ class Maze
 
         if total_moves < visited[[pos[0], pos[1], @collected_keys.sort.join("")]]
           visited[[pos[0], pos[1], @collected_keys.sort.join("")]] = total_moves
-          pq.push(state: [pos[0], pos[1], @collected_keys.sort.join(""), total_moves], priority: -100 * @available_keys.length + @collected_keys.length)
+          pq.push(state: [pos[0], pos[1], @collected_keys.sort.join(""), total_moves], priority: -total_moves * @available_keys.length - @collected_keys.length)
         end
 
         @collected_keys.delete(key)
         total_moves -= moves
       end
     end
-
-    best
   end
 
   def inspect
