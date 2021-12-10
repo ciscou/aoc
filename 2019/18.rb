@@ -1,4 +1,59 @@
-INPUT = File.read(__FILE__.sub('.rb', '_example.txt')).lines.map(&:chomp)
+INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
+
+# stolen from https://gist.github.com/brianstorti/e20300eb2e7d62b87849
+class PriorityQueue
+  attr_reader :elements
+
+  def initialize
+    @elements = [nil]
+  end
+
+  def <<(element)
+    @elements << element
+    bubble_up(@elements.size - 1)
+  end
+
+  alias_method :push, :<<
+
+  def pop
+    exchange(1, @elements.size - 1)
+    max = @elements.pop
+    bubble_down(1)
+    max
+  end
+
+  private
+
+  def bubble_up(index)
+    parent_index = (index / 2)
+
+    return if index <= 1
+    return if @elements[parent_index][:priority] >= @elements[index][:priority]
+
+    exchange(index, parent_index)
+    bubble_up(parent_index)
+  end
+
+  def bubble_down(index)
+    child_index = (index * 2)
+
+    return if child_index > @elements.size - 1
+
+    not_the_last_element = child_index < @elements.size - 1
+    left_element = @elements[child_index]
+    right_element = @elements[child_index + 1]
+    child_index += 1 if not_the_last_element && right_element[:priority] > left_element[:priority]
+
+    return if @elements[index][:priority] >= @elements[child_index][:priority]
+
+    exchange(index, child_index)
+    bubble_down(child_index)
+  end
+
+  def exchange(source, target)
+    @elements[source], @elements[target] = @elements[target], @elements[source]
+  end
+end
 
 class Maze
   def initialize
@@ -110,14 +165,17 @@ class Maze
 
     from = [robot[0], robot[1]]
 
-    stack = []
+    pq = PriorityQueue.new
     visited = Hash.new(Float::INFINITY)
 
-    stack.push([from[0], from[1], "", 0])
+    pq.push(state: [from[0], from[1], "", 0], priority: 0)
     visited[[from[0], from[1], ""]] = true
 
-    until stack.empty?
-      row, col, collected_keys, total_moves = stack.pop
+    loop do
+      node = pq.pop
+      break if node.nil?
+
+      row, col, collected_keys, total_moves = node[:state]
       from = [row, col]
 
       next unless total_moves < best
@@ -143,7 +201,7 @@ class Maze
 
         if total_moves < visited[[pos[0], pos[1], @collected_keys.sort.join("")]]
           visited[[pos[0], pos[1], @collected_keys.sort.join("")]] = total_moves
-          stack.push([pos[0], pos[1], @collected_keys.sort.join(""), total_moves])
+          pq.push(state: [pos[0], pos[1], @collected_keys.sort.join(""), total_moves], priority: -100 * @available_keys.length + @collected_keys.length)
         end
 
         @collected_keys.delete(key)
