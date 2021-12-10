@@ -21,64 +21,58 @@ INCOMPLETE_SCORE = {
   '>' => 4
 }
 
-def corrupted_score(line)
+def parsing_errors(line)
   stack = []
 
   line.chars.each do |char|
     closing = PAIRS[char]
     if closing
      stack.push(closing)
-    else
-      expected = stack.pop
-
-      if expected != char
-        # puts "Expected #{expected.inspect} but got #{char.inspect}"
-        return CORRUPTED_SCORE[char]
-      end
+    elsif char != stack.pop
+      return { corrupted: char }
     end
   end
 
-  0
+  if stack.empty?
+    nil
+  else
+    { incomplete: stack }
+  end
+end
+
+def corrupted_score(line)
+  errors = parsing_errors(line)
+  corrupted = errors[:corrupted]
+
+  return unless corrupted
+
+  CORRUPTED_SCORE[corrupted]
 end
 
 def incomplete_score(line)
-  stack = []
+  errors = parsing_errors(line)
+  incomplete = errors[:incomplete]
 
-  line.chars.each do |char|
-    closing = PAIRS[char]
-    if closing
-     stack.push(closing)
-    else
-      expected = stack.pop
+  return unless incomplete
 
-      if expected != char
-        raise "Expected #{expected.inspect} but got #{char.inspect}"
-      end
-    end
+  incomplete.reverse.inject(0) do |score, char|
+    score * 5 + INCOMPLETE_SCORE[char]
   end
-
-  score = 0
-
-  until stack.empty?
-    score *= 5
-    score += INCOMPLETE_SCORE[stack.pop]
-  end
-
-  score
 end
 
-part1 = INPUT.sum do |line|
-  corrupted_score(line)
+def part1
+  INPUT.map do |line|
+    corrupted_score(line)
+  end.compact.sum
+end
+
+def part2
+  scores = INPUT.map do |line|
+    incomplete_score(line)
+  end.compact.sort
+
+  scores[scores.length / 2]
 end
 
 puts part1
-
-part2 = INPUT.map do |line|
-  if corrupted_score(line) > 0
-    nil
-  else
-    incomplete_score(line)
-  end
-end.compact.sort
-
-puts part2[part2.length / 2]
+puts part2
