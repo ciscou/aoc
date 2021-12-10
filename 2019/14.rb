@@ -21,10 +21,8 @@ def calculate_ore_for(amount, chemical, leftovers = nil)
   leftovers ||= Hash.new(0)
 
   reaction = REACTION_TO_PRODUCE[chemical]
-  n, lo = amount.divmod(reaction[:output])
-  n += 1 if lo > 0
-
-  leftovers[chemical] += lo
+  n = (amount.fdiv(reaction[:output])).ceil
+  leftovers[chemical] += n * reaction[:output] - amount
 
   reaction[:inputs].sum do |k, v|
     v *= n
