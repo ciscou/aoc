@@ -1,5 +1,35 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
+def build_grid
+  grid = {}
+
+  INPUT.each.with_index do |line, row|
+    line.chars.map(&:to_i).each.with_index do |cell, col|
+      grid[[row, col]] = cell
+    end
+  end
+
+  grid
+end
+
+def perform_step(grid)
+  flashed = {}
+
+  grid.keys.each do |pos|
+    grid[pos] += 1
+  end
+  grid.keys.each do |pos|
+    flash(grid, pos, flashed)
+  end
+  grid.keys.each do |pos|
+    if grid[pos] > 9
+      grid[pos] = 0
+    end
+  end
+
+  flashed.size
+end
+
 def neightbours_positions(grid, pos)
   row, col = pos
 
@@ -30,66 +60,21 @@ def flash(grid, pos, flashed)
 end
 
 def part1
-  grid = {}
+  grid = build_grid
 
-  INPUT.each.with_index do |line, row|
-    line.chars.map(&:to_i).each.with_index do |cell, col|
-      grid[[row, col]] = cell
-    end
+  100.times.sum do
+    perform_step(grid)
   end
-
-  flashes = 0
-
-  100.times do
-    flashed = {}
-
-    grid.keys.each do |pos|
-      grid[pos] += 1
-    end
-    grid.keys.each do |pos|
-      flash(grid, pos, flashed)
-    end
-    grid.keys.each do |pos|
-      if grid[pos] > 9
-        grid[pos] = 0
-      end
-    end
-
-    flashes += flashed.size
-  end
-
-  flashes
 end
 
 def part2
-  grid = {}
-
-  INPUT.each.with_index do |line, row|
-    line.chars.map(&:to_i).each.with_index do |cell, col|
-      grid[[row, col]] = cell
-    end
-  end
+  grid = build_grid
 
   step = 0
-
   loop do
     step += 1
 
-    flashed = {}
-
-    grid.keys.each do |pos|
-      grid[pos] += 1
-    end
-    grid.keys.each do |pos|
-      flash(grid, pos, flashed)
-    end
-    grid.keys.each do |pos|
-      if grid[pos] > 9
-        grid[pos] = 0
-      end
-    end
-
-    return step if flashed.size == grid.size
+    return step if perform_step(grid) == grid.size
   end
 end
 
