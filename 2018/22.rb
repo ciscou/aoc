@@ -14,10 +14,12 @@ class PriorityQueue
 
   def initialize
     @elements = [nil]
+    @index_by_pos = {}
   end
 
   def <<(element)
     @elements << element
+    @index_by_pos[element[:pos]] = element
     bubble_up(@elements.size - 1)
   end
 
@@ -26,8 +28,13 @@ class PriorityQueue
   def pop
     exchange(1, @elements.size - 1)
     max = @elements.pop
+    @index_by_pos.delete(max[:pos])
     bubble_down(1)
     max
+  end
+
+  def get_by_pos(pos)
+    @index_by_pos[pos]
   end
 
   private
@@ -103,14 +110,13 @@ def a_star
 
     pos = node[:pos]
     total_time = node[:total_time]
-    priority = node[:priority]
     row, col, equip = pos
 
     if row == TARGET_Y && col == TARGET_X && equip == "torch"
       return node
     end
 
-    next if total_time > closed[node[:pos]]
+    next if total_time > closed[node[:pos]] # TODO: not sure if needed
 
     [
       [ 0, -1],
@@ -137,11 +143,10 @@ def a_star
       manhattan = (TARGET_X - (col + dcol)).abs + (TARGET_Y - (row + drow)).abs
       next_node = { pos: [row + drow, col + dcol, dequip], total_time: total_time + elapsed, priority: -(total_time + elapsed + manhattan) }
 
-      next if next_node[:pos][0] < 0 || next_node[:pos][1] < 0
+      already_open = open.get_by_pos(next_node[:pos])
+      next if already_open && already_open[:total_time] <= next_node[:total_time]
 
-      #       ii) if a node with the same position as 
-      #     successor is in the OPEN list which has a 
-      #    lower f than successor, skip this successor
+      next if next_node[:pos][0] < 0 || next_node[:pos][1] < 0
 
       case type([next_node[:pos][0], next_node[:pos][1]])
       when "rocky"
