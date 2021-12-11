@@ -1,4 +1,4 @@
-INPUT = File.read(__FILE__.sub('.rb', '_example.txt')).lines.map(&:chomp)
+INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
 def bug_at(grid, row, col)
   return 0 if row < 0
@@ -62,11 +62,10 @@ def part1
 end
 
 class InfiniteGrid
-  def initialize(parent: nil, child: nil)
-    @cells = INPUT.map do |line|
-      line.chomp.split(//).map { |c| c == "#" }
-    end
+  def initialize(cells: nil, parent: nil, child: nil)
+    cells ||= 5.times.map { 5.times.map { false } }
 
+    @cells = cells
     @parent = parent
     @child = child
 
@@ -76,27 +75,33 @@ class InfiniteGrid
   attr_reader :parent, :child
 
   def evolve
-    evolve_self
+    new_cells = evolve_self
 
-    @child.evolve_child unless @child.nil?
     @child ||= InfiniteGrid.new(parent: self)
+    @child.evolve_child
 
-    @parent.evolve_parent unless @parent.nil?
     @parent ||= InfiniteGrid.new(child: self)
+    @parent.evolve_parent
+
+    @cells = new_cells
   end
 
   def evolve_child
-    evolve_self
+    new_cells = evolve_self
 
     @child.evolve_child unless @child.nil?
     @child ||= InfiniteGrid.new(parent: self)
+
+    @cells = new_cells
   end
 
   def evolve_parent
-    evolve_self
+    new_cells = evolve_self
 
     @parent.evolve_parent unless @parent.nil?
     @parent ||= InfiniteGrid.new(child: self)
+
+    @cells = new_cells
   end
 
   def evolve_self
@@ -118,7 +123,7 @@ class InfiniteGrid
       end
     end
 
-    @cells = new_cells
+    new_cells
   end
 
   def bug_at(row, col)
@@ -178,7 +183,10 @@ class InfiniteGrid
   end
 
   def count_bugs
-    count_self_bugs + count_child_bugs + count_parent_bugs
+    bugs = 0
+    bugs += count_self_bugs
+    bugs += @child.count_child_bugs unless @child.nil?
+    bugs += @parent.count_parent_bugs unless @parent.nil?
   end
 
   def count_self_bugs
@@ -223,25 +231,15 @@ class InfiniteGrid
 end
 
 def part2
-  grid = InfiniteGrid.new()
-
-  10.times do
-    grid.evolve
+  cells = INPUT.map do |line|
+    line.chomp.split(//).map { |c| c == "#" }
   end
 
-  grid.parent.parent.parent.parent.parent.draw
-  grid.parent.parent.parent.parent.draw
-  grid.parent.parent.parent.draw
-  grid.parent.parent.draw
-  grid.parent.draw
-  puts "Depth 0"
-  puts
-  grid.draw
-  grid.child.draw
-  grid.child.child.draw
-  grid.child.child.child.draw
-  grid.child.child.child.child.draw
-  grid.child.child.child.child.child.draw
+  grid = InfiniteGrid.new(cells: cells)
+
+  200.times do |i|
+    grid.evolve
+  end
 
   grid.count_bugs
 end
