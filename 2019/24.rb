@@ -1,87 +1,50 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
-def bug_at(grid, row, col)
-  return 0 if row < 0
-  return 0 if col < 0
-  return 0 if row > grid.length - 1
-  return 0 if col > grid.first.length - 1
-
-  grid[row][col] ? 1 : 0
-end
-
-def count_adj_bugs(grid, row, col)
-  bug_at(grid, row-1, col) +
-  bug_at(grid, row+1, col) +
-  bug_at(grid, row, col-1) +
-  bug_at(grid, row, col+1)
-end
-
-def biodiversity(grid)
-  weight = 1
-  sum = 0
-
-  grid.each do |row|
-    row.each do |col|
-      sum += weight if col
-
-      weight *= 2
-    end
-  end
-
-  sum
-end
-
-def part1
-  grid = INPUT.map do |line|
-    line.chomp.split(//).map { |c| c == "#" }
-  end
-
-  seen_grids = []
-
-  until seen_grids.include?(grid)
-    seen_grids << grid
-
-    new_grid = []
-    grid.length.times do |row|
-      new_grid << []
-      grid.first.length.times do |col|
-        new_grid[row][col] = grid[row][col]
-
-        if grid[row][col]
-          new_grid[row][col] = false unless count_adj_bugs(grid, row, col) == 1
-        else
-          new_grid[row][col] = true if [1, 2].include? count_adj_bugs(grid, row, col)
-        end
-      end
-    end
-
-    grid = new_grid
-  end
-
-  biodiversity(grid)
-end
-
-class InfiniteGrid
-  def initialize(cells: nil, parent: nil, child: nil)
+class Grid
+  def initialize(cells: nil, infinite: false, parent: nil, child: nil)
     cells ||= 5.times.map { 5.times.map { false } }
 
     @cells = cells
+    @infinite = infinite
     @parent = parent
     @child = child
-
-    @cells[2][2] = nil # TODO: ???
   end
 
-  attr_reader :parent, :child
+  def evolve_until_repeat
+    seen_grids = []
+
+    until seen_grids.include?(@cells)
+      seen_grids << @cells
+
+      evolve
+    end
+  end
+
+  def biodiversity
+    weight = 1
+    sum = 0
+
+    @cells.each do |row|
+      row.each do |col|
+        sum += weight if col
+
+        weight *= 2
+      end
+    end
+
+    sum
+  end
 
   def evolve
     new_cells = evolve_self
 
-    @child ||= InfiniteGrid.new(parent: self)
-    @child.evolve_child
+    if @infinite
+      @child ||= Grid.new(infinite: true, parent: self)
+      @child.evolve_child
 
-    @parent ||= InfiniteGrid.new(child: self)
-    @parent.evolve_parent
+      @parent ||= Grid.new(infinite: true, child: self)
+      @parent.evolve_parent
+    end
 
     @cells = new_cells
   end
@@ -90,7 +53,7 @@ class InfiniteGrid
     new_cells = evolve_self
 
     @child.evolve_child unless @child.nil?
-    @child ||= InfiniteGrid.new(parent: self)
+    @child ||= Grid.new(infinite: true, parent: self)
 
     @cells = new_cells
   end
@@ -99,7 +62,7 @@ class InfiniteGrid
     new_cells = evolve_self
 
     @parent.evolve_parent unless @parent.nil?
-    @parent ||= InfiniteGrid.new(child: self)
+    @parent ||= Grid.new(infinite: true, child: self)
 
     @cells = new_cells
   end
@@ -113,7 +76,7 @@ class InfiniteGrid
       @cells.first.length.times do |col|
         new_cells[row][col] = @cells[row][col]
 
-        next if row == 2 && col == 2
+        next if @infinite && row == 2 && col == 2
 
         if @cells[row][col]
           new_cells[row][col] = false unless count_adj_bugs(row, col) == 1
@@ -127,6 +90,8 @@ class InfiniteGrid
   end
 
   def bug_at(row, col)
+    return 0 if @infinite && row == 2 && col == 2
+
     @cells[row][col] ? 1 : 0
   end
 
@@ -148,7 +113,7 @@ class InfiniteGrid
     ].map do |drow, dcol|
       [row + drow, col + dcol]
     end.select do |row, col|
-      if row == 2 && col == 2
+      if @infinite && row == 2 && col == 2
         false
       else
         row >= 0 && col >= 0 && row < 5 && col < 5
@@ -214,7 +179,7 @@ class InfiniteGrid
   def draw
     5.times.each do |row|
       line = 5.times.map do |col|
-        if row == 2 && col == 2
+        if @infinite && row == 2 && col == 2
           "?"
         elsif @cells[row][col]
           "#"
@@ -230,12 +195,23 @@ class InfiniteGrid
   end
 end
 
-def part2
+def part1
   cells = INPUT.map do |line|
-    line.chomp.split(//).map { |c| c == "#" }
+    line.chars.map { |c| c == "#" }
   end
 
-  grid = InfiniteGrid.new(cells: cells)
+  grid = Grid.new(cells: cells)
+  grid.evolve_until_repeat
+
+  grid.biodiversity
+end
+
+def part2
+  cells = INPUT.map do |line|
+    line.chars.map { |c| c == "#" }
+  end
+
+  grid = Grid.new(cells: cells, infinite: true)
 
   200.times do |i|
     grid.evolve
