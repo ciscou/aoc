@@ -1,4 +1,4 @@
-input = <<EOS
+INPUT = <<EOS
 Player 1:
 41
 26
@@ -54,35 +54,82 @@ Player 2:
 47
 EOS
 
-p1 = []
-p2 = []
-pc = nil
+def prepare_stacks
+  p1 = []
+  p2 = []
+  pc = nil
 
-input.lines.each do |line|
-  line.chomp!
+  INPUT.lines.each do |line|
+    line.chomp!
 
-  next if line.empty?
+    next if line.empty?
 
-  case line
-  when "Player 1:" then pc = p1
-  when "Player 2:" then pc = p2
-  else pc << line.to_i
+    case line
+    when "Player 1:" then pc = p1
+    when "Player 2:" then pc = p2
+    else pc << line.to_i
+    end
   end
+
+  [p1, p2]
 end
 
-while [p1, p2].none?(&:empty?)
-  c1 = p1.shift
-  c2 = p2.shift
+def combat(p1, p2, recursive: false)
+  seen = {}
 
-  if c1 > c2
-    p1.push(c1)
-    p1.push(c2)
-  else
-    p2.push(c2)
-    p2.push(c1)
+  round = 0
+  while [p1, p2].none?(&:empty?)
+    round += 1
+
+    if seen[[p1, p2].map { |p| p.join(",") }.join(";")]
+      return p1
+    end
+
+    seen[[p1, p2].map { |p| p.join(",") }.join(";")] = true
+
+    c1 = p1.shift
+    c2 = p2.shift
+
+    if recursive && p1.length >= c1 && p2.length >= c2
+      newp1 = p1[0, c1].map(&:itself)
+      newp2 = p2[0, c2].map(&:itself)
+
+      winner = combat(newp1, newp2, recursive: recursive)
+
+      if winner == newp1
+        p1.push(c1)
+        p1.push(c2)
+      else
+        p2.push(c2)
+        p2.push(c1)
+      end
+    elsif c1 > c2
+      p1.push(c1)
+      p1.push(c2)
+    else
+      p2.push(c2)
+      p2.push(c1)
+    end
   end
+
+  p1.empty? ? p2 : p1
 end
 
-pc = p1.empty? ? p2 : p1
+def game(recursive:)
+  p1, p2 = prepare_stacks
 
-puts pc.reverse.map.with_index { |c, i| c * (i + 1) }.reduce(:+)
+  pc = combat(p1, p2, recursive: recursive)
+
+  pc.reverse.map.with_index { |c, i| c * (i + 1) }.reduce(:+)
+end
+
+def part1
+  game(recursive: false)
+end
+
+def part2
+  game(recursive: true)
+end
+
+puts part1
+puts part2
