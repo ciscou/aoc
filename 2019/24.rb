@@ -1,13 +1,14 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
 class Grid
-  def initialize(cells: nil, infinite: false, parent: nil, child: nil)
-    cells ||= 5.times.map { 5.times.map { false } }
-
+  def initialize(cells: {}, infinite: false, parent: nil, child: nil)
     @cells = cells
     @infinite = infinite
     @parent = parent
     @child = child
+
+    @height = 5
+    @width = 5
   end
 
   def evolve_until_repeat
@@ -24,9 +25,9 @@ class Grid
     weight = 1
     sum = 0
 
-    @cells.each do |row|
-      row.each do |col|
-        sum += weight if col
+    @height.times do |row|
+      @width.times do |col|
+        sum += weight if @cells[[row, col]]
 
         weight *= 2
       end
@@ -68,20 +69,18 @@ class Grid
   end
 
   def evolve_self
-    new_cells = []
+    new_cells = {}
 
-    @cells.length.times do |row|
-      new_cells << []
-
-      @cells.first.length.times do |col|
-        new_cells[row][col] = @cells[row][col]
+    @height.times do |row|
+      @width.times do |col|
+        new_cells[[row, col]] = @cells[[row, col]]
 
         next if @infinite && row == 2 && col == 2
 
-        if @cells[row][col]
-          new_cells[row][col] = false unless count_adj_bugs(row, col) == 1
+        if @cells[[row, col]]
+          new_cells[[row, col]] = false unless count_adj_bugs(row, col) == 1
         else
-          new_cells[row][col] = true if [1, 2].include? count_adj_bugs(row, col)
+          new_cells[[row, col]] = true if [1, 2].include? count_adj_bugs(row, col)
         end
       end
     end
@@ -92,7 +91,7 @@ class Grid
   def bug_at(row, col)
     return 0 if @infinite && row == 2 && col == 2
 
-    @cells[row][col] ? 1 : 0
+    @cells[[row, col]] ? 1 : 0
   end
 
   def count_adj_bugs(row, col)
@@ -155,8 +154,8 @@ class Grid
   end
 
   def count_self_bugs
-    5.times.sum do |row|
-      5.times.sum do |col|
+    @height.times.sum do |row|
+      @width.times.sum do |col|
         bug_at(row, col)
       end
     end
@@ -177,11 +176,11 @@ class Grid
   end
 
   def draw
-    5.times.each do |row|
-      line = 5.times.map do |col|
+    @height.times.each do |row|
+      line = @width.times.map do |col|
         if @infinite && row == 2 && col == 2
           "?"
-        elsif @cells[row][col]
+        elsif @cells[[row, col]]
           "#"
         else
           "."
@@ -196,8 +195,12 @@ class Grid
 end
 
 def part1
-  cells = INPUT.map do |line|
-    line.chars.map { |c| c == "#" }
+  cells = {}
+
+  5.times do |row|
+    5.times do |col|
+      cells[[row, col]] = true if INPUT[row][col] == "#"
+    end
   end
 
   grid = Grid.new(cells: cells)
@@ -207,8 +210,12 @@ def part1
 end
 
 def part2
-  cells = INPUT.map do |line|
-    line.chars.map { |c| c == "#" }
+  cells = {}
+
+  5.times do |row|
+    5.times do |col|
+      cells[[row, col]] = true if INPUT[row][col] == "#"
+    end
   end
 
   grid = Grid.new(cells: cells, infinite: true)
