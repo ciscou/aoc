@@ -1,4 +1,4 @@
-INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
+INPUT = File.read(__FILE__.sub('.rb', '_example.txt')).lines.map(&:chomp)
 
 DEPTH = INPUT.first.split(" ").last.to_i
 TARGET_X = INPUT.last.split(" ").last.split(",").first.to_i
@@ -82,9 +82,9 @@ end
 
 def type(pos)
   case erosion_level(pos) % 3
-  when 0 then :rocky
-  when 1 then :wet
-  when 2 then :narrow
+  when 0 then "rocky"
+  when 1 then "wet"
+  when 2 then "narrow"
   else raise
   end
 end
@@ -93,36 +93,68 @@ def a_star
   open = PriorityQueue.new
   closed = Hash.new(Float::INFINITY)
 
-  initial = { pos: [0, 0], moves: 0, priority: -(TARGET_X + TARGET_Y) }
+  initial = { pos: [0, 0, "torch"], total_time: 0, priority: -(TARGET_X + TARGET_Y) }
   open.push(initial)
-  closed[[0, 0]] = initial[:priority]
+  closed[initial[:pos]] = initial[:total_time]
 
   loop do
     node = open.pop
     break if node.nil?
 
     pos = node[:pos]
-    moves = node[:moves]
+    total_time = node[:total_time]
     priority = node[:priority]
-    row, col = pos
+    row, col, equip = pos
 
-    if row == TARGET_Y && col == TARGET_X
+    if row == TARGET_Y && col == TARGET_X && equip == "torch"
       return node
     end
+
+    next if total_time > closed[node[:pos]]
 
     [
       [ 0, -1],
       [ 0,  1],
       [-1,  0],
       [ 1,  0],
-    ].each do |drow, dcol|
-      manhattan = (TARGET_X - col).abs + (TARGET_Y - row).abs
-      next_node = { pos: [row + drow, col + dcol], moves: moves + 1, priority: moves - 1 - manhattan }
+      "climbing_gear",
+      "torch",
+      "neither",
+    ].each do |move|
+      elapsed = 0
+      dcol, drow = 0, 0
+      dequip = equip
 
-      next if next_node[:pos].any? { |x| x < 0 }
+      if move.is_a?(String)
+        dequip = move
+        elapsed = 7
+        next if dequip == equip
+      else
+        elapsed = 1
+        dcol, drow = move
+      end
 
-      if next_node[:priority] < closed[next_node[:pos]]
-        closed[next_node[:pos]] = next_node[:priority]
+      manhattan = (TARGET_X - (col + dcol)).abs + (TARGET_Y - (row + drow)).abs
+      next_node = { pos: [row + drow, col + dcol, dequip], total_time: total_time + elapsed, priority: -(total_time + elapsed + manhattan) }
+
+      next if next_node[:pos][0] < 0 || next_node[:pos][1] < 0
+
+      #       ii) if a node with the same position as 
+      #     successor is in the OPEN list which has a 
+      #    lower f than successor, skip this successor
+
+      case type([next_node[:pos][0], next_node[:pos][1]])
+      when "rocky"
+        next if next_node[:pos][2] == "neither"
+      when "wet"
+        next if next_node[:pos][2] == "torch"
+      when "narrow"
+        next if next_node[:pos][2] == "climbing_gear"
+      else raise "invalid equip #{next_node[:pos][2].inspect}"
+      end
+
+      if next_node[:total_time] < closed[next_node[:pos]]
+        closed[next_node[:pos]] = next_node[:total_time]
 
         open.push(next_node)
       end
