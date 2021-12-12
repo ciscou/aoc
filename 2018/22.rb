@@ -1,4 +1,4 @@
-INPUT = File.read(__FILE__.sub('.rb', '_example.txt')).lines.map(&:chomp)
+INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
 DEPTH = INPUT.first.split(" ").last.to_i
 TARGET_X = INPUT.last.split(" ").last.split(",").first.to_i
@@ -110,13 +110,13 @@ def a_star
 
     pos = node[:pos]
     total_time = node[:total_time]
-    row, col, equip = pos
+    x, y, equip = pos
 
-    if row == TARGET_Y && col == TARGET_X && equip == "torch"
+    if y == TARGET_Y && x == TARGET_X && equip == "torch"
       return node
     end
 
-    next if total_time > closed[node[:pos]] # TODO: not sure if needed
+    next if total_time > closed[node[:pos]]
 
     [
       [ 0, -1],
@@ -128,7 +128,7 @@ def a_star
       "neither",
     ].each do |move|
       elapsed = 0
-      dcol, drow = 0, 0
+      dx, dy = 0, 0
       dequip = equip
 
       if move.is_a?(String)
@@ -137,11 +137,11 @@ def a_star
         next if dequip == equip
       else
         elapsed = 1
-        dcol, drow = move
+        dx, dy = move
       end
 
-      manhattan = (TARGET_X - (col + dcol)).abs + (TARGET_Y - (row + drow)).abs
-      next_node = { pos: [row + drow, col + dcol, dequip], total_time: total_time + elapsed, priority: -(total_time + elapsed + manhattan) }
+      manhattan = (TARGET_X - (x + dx)).abs + (TARGET_Y - (y + dy)).abs
+      next_node = { pos: [x + dx, y + dy, dequip], total_time: total_time + elapsed, priority: -(total_time + elapsed + manhattan) }
 
       already_open = open.get_by_pos(next_node[:pos])
       next if already_open && already_open[:total_time] <= next_node[:total_time]
