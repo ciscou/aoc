@@ -89,6 +89,36 @@ def type(pos)
   end
 end
 
+def candidate_moves
+  [
+    [ 0, -1],
+    [ 0,  1],
+    [-1,  0],
+    [ 1,  0],
+    "climbing_gear",
+    "torch",
+    "neither"
+  ]
+end
+
+def valid_position?(pos)
+  x, y, equip = pos
+
+  return false if x < 0 || y < 0
+
+  case type([pos[0], pos[1]])
+  when "rocky"
+    return false if equip == "neither"
+  when "wet"
+    return false if equip == "torch"
+  when "narrow"
+    return false if equip == "climbing_gear"
+  else raise "invalid equip #{equip.inspect}"
+  end
+
+  true
+end
+
 def a_star
   open = PriorityQueue.new
   closed = Hash.new(Float::INFINITY)
@@ -111,15 +141,7 @@ def a_star
 
     next if total_time > closed[node[:pos]]
 
-    [
-      [ 0, -1],
-      [ 0,  1],
-      [-1,  0],
-      [ 1,  0],
-      "climbing_gear",
-      "torch",
-      "neither",
-    ].each do |move|
+    candidate_moves.each do |move|
       elapsed = 0
       dx, dy = 0, 0
       dequip = equip
@@ -136,17 +158,7 @@ def a_star
       manhattan = (TARGET_X - (x + dx)).abs + (TARGET_Y - (y + dy)).abs
       next_node = { pos: [x + dx, y + dy, dequip], total_time: total_time + elapsed, priority: -(total_time + elapsed + manhattan) }
 
-      next if next_node[:pos][0] < 0 || next_node[:pos][1] < 0
-
-      case type([next_node[:pos][0], next_node[:pos][1]])
-      when "rocky"
-        next if next_node[:pos][2] == "neither"
-      when "wet"
-        next if next_node[:pos][2] == "torch"
-      when "narrow"
-        next if next_node[:pos][2] == "climbing_gear"
-      else raise "invalid equip #{next_node[:pos][2].inspect}"
-      end
+      next unless valid_position?(next_node[:pos])
 
       if next_node[:total_time] < closed[next_node[:pos]]
         closed[next_node[:pos]] = next_node[:total_time]
