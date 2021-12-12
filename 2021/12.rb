@@ -7,44 +7,42 @@ INPUT.map { |line| line.split("-") }.each do |a, b|
   ADJACENTS[b] << a
 end
 
-def find_all_paths(make_an_exception)
-  stack = []
-  stack.push(['start', ['start'], {'start' => true}, false])
+CACHE = {}
 
-  res = []
+def find_all_paths(cave, path, visited, exception, make_an_exception)
+  CACHE[[cave, visited, exception, make_an_exception]] ||= find_all_paths_helper(cave, path, visited, exception, make_an_exception)
+end
 
-  until stack.empty?
-    node = stack.pop
-    cave, path, visited, exception = node
+def find_all_paths_helper(cave, path, visited, exception, make_an_exception)
 
-    if cave == 'end'
-      res << path
-      next
-    end
+  return 1 if cave == 'end'
 
-    ADJACENTS[cave].each do |next_cave|
-      next_path = path + [next_cave]
-      next_visited = visited.merge(next_cave => next_cave.downcase == next_cave)
-      next_exception = exception || visited[next_cave]
+  ADJACENTS[cave].sum do |next_cave|
+    next_path = path + [next_cave]
+    next_visited = visited.merge(next_cave => next_cave.downcase == next_cave)
+    next_exception = exception || visited[next_cave]
 
-      can_make_an_exception = make_an_exception && !exception && next_cave != 'start' && next_cave != 'end'
+    can_make_an_exception = make_an_exception && !exception && next_cave != 'start' && next_cave != 'end'
 
-      if !visited[next_cave] || can_make_an_exception
-        stack.push([next_cave, next_path, next_visited, next_exception])
-      end
+    if !visited[next_cave] || can_make_an_exception
+      find_all_paths(next_cave, next_path, next_visited, next_exception, make_an_exception)
+    else
+      0
     end
   end
+end
 
-  res
+def find_all_paths_from(start, make_an_exception)
+  find_all_paths(start, [start], { start => true }, false, make_an_exception)
 end
 
 def part1
-  find_all_paths(false)
+  find_all_paths_from('start', false)
 end
 
 def part2
-  find_all_paths(true)
+  find_all_paths_from('start', true)
 end
 
-puts part1.length
-puts part2.length
+puts part1
+puts part2
