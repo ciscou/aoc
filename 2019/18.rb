@@ -72,6 +72,27 @@ class Maze
     end
   end
 
+  def four_robots!
+    robot = @robots.first
+
+    @cells[robot[0]][robot[1]] = "#"
+    @cells[robot[0]-1][robot[1]] = "#"
+    @cells[robot[0]+1][robot[1]] = "#"
+    @cells[robot[0]][robot[1]-1] = "#"
+    @cells[robot[0]][robot[1]+1] = "#"
+
+    @robots = [
+      [robot[0]-1, robot[1]-1],
+      [robot[0]-1, robot[1]+1],
+      [robot[0]+1, robot[1]-1],
+      [robot[0]+1, robot[1]+1],
+    ]
+
+    @robots.each.with_index do |robot, i|
+      @cells[robot[0]][robot[1]] = "@"
+    end
+  end
+
   def cell_at(pos)
     row, col = pos
 
@@ -244,18 +265,20 @@ class Maze
   end
 end
 
-def part1
-  maze1 = Maze.new
+def solve(four_robots)
+  maze = Maze.new
 
-  maze1.available_keys.each do |key|
-    maze1.calculate_all_paths!(maze1.key_position(key))
+  maze.four_robots! if four_robots
+
+  maze.available_keys.each do |key|
+    maze.calculate_all_paths!(maze.key_position(key))
   end
 
-  maze1.robots_count.times do |index|
-    maze1.calculate_all_paths!(maze1.robot_position(index))
+  maze.robots_count.times do |index|
+    maze.calculate_all_paths!(maze.robot_position(index))
   end
 
-  node, distances, parents = maze1.find_min_path_to_all_keys
+  node, distances, parents = maze.find_min_path_to_all_keys
 
   path = []
   state = node[:state]
@@ -270,9 +293,18 @@ def part1
     state = parents[state]
   end
 
-  puts maze1.cells_at(path).join(" ")
+  puts maze.cells_at(path).join(" ")
 
   node[:priority] * -1
 end
 
+def part1
+  solve(false)
+end
+
+def part2
+  solve(true)
+end
+
 puts part1
+puts part2
