@@ -126,72 +126,29 @@ class Maze
     @calculated_paths[[from, to]]
   end
 
-  def find_min_path_to_all_keys_old
-    pq = PriorityQueue.new
-
-    @robots.each do |pos|
-      row, col = pos
-      pq.push(state: [row, col, {}], cost: 0, priority: 0)
-    end
-
-    loop do
-      node = pq.pop
-      next unless node
-
-      # TODO: visited? look up dijkstra algorithm
-
-      row, col, keys = node[:state]
-      cost = node[:cost]
-      pos = [row, col]
-
-      remaining_keys = available_keys - keys.keys
-
-      return node if remaining_keys.empty?
-
-      remaining_keys.each do |remaining_key|
-        calculated_paths(pos, key_position(remaining_key)).each do |path|
-          next_keys = keys.dup
-
-          closed_door = false
-
-          path.each do |pos|
-            next_keys[cell_at(pos)] = true if is_key?(pos)
-            closed_door = true if is_door?(pos) && !next_keys[key_for(cell_at(pos))]
-          end
-
-          next if closed_door
-
-          next_row, next_col = path.last
-          next_cost = cost + path.length - 1
-
-          pq.push(state: [next_row, next_col, next_keys], cost: next_cost, priority: -next_cost)
-        end
-      end
-    end
-  end
-
   def find_min_path_to_all_keys
     # Dijkstra
 
-    distances = Hash.new(Float::INFINITY)
-    parent = {}
+    pq = PriorityQueue.new
+    pq.push(number: 3, priority: 3)
+    pq.push(number: 4, priority: 4)
+    pq.push(number: -27, priority: -27)
+    pq.push(number: 0, priority: 0)
+
+    distances = Hash.new(999_999_999_999)
+    parents = {}
     visited = {}
 
-    initial_state = robots_count.times.map do |index|
-      robot_position(index)
-    end
-
-    initial_state += [{}]
+    initial_state = [robots_count.times.map { |i| robot_position(i) }, {}]
 
     distances[initial_state] = 0
-
-    puts distances.inspect
 
     pq = PriorityQueue.new
     pq.push(state: initial_state, priority: 0)
 
     loop do
       node = pq.pop
+
       break unless node
 
       state = node[:state]
@@ -199,6 +156,8 @@ class Maze
       visited[state] = true
 
       robots, keys = node[:state]
+
+      return [node, distances, parents] if keys.size == available_keys.size
 
       robots_count.times do |index|
         pos = robots[index]
@@ -221,16 +180,15 @@ class Maze
             next_row, next_col = path.last
 
             next_robots = robots.dup
-            robots[index] = [next_row, next_col]
+            next_robots[index] = [next_row, next_col]
 
             next_state = [next_robots, next_keys]
 
             next if visited[next_state]
 
-            # TODO pretty sure this > is a <
             if distances[next_state] > distances[state] + path.length - 1
               distances[next_state] = distances[state] + path.length - 1
-              parent[next_state] = state
+              parents[next_state] = state
 
               pq.push(state: next_state, priority: -distances[next_state])
             end
@@ -239,7 +197,7 @@ class Maze
       end
     end
 
-    [distances, parent, visited]
+    nil
   end
 
   private
@@ -296,4 +254,4 @@ maze1.robots_count.times do |index|
   maze1.calculate_all_paths!(maze1.robot_position(index))
 end
 
-puts maze1.find_min_path_to_all_keys.inspect
+puts maze1.find_min_path_to_all_keys.first[:priority] * -1
