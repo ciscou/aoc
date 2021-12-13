@@ -138,6 +138,8 @@ class Maze
       node = pq.pop
       next unless node
 
+      # TODO: visited? look up dijkstra algorithm
+
       row, col, keys = node[:state]
       cost = node[:cost]
       pos = [row, col]
@@ -148,21 +150,18 @@ class Maze
 
       remaining_keys.each do |remaining_key|
         calculated_paths(pos, key_position(remaining_key)).each do |path|
-          path_doors = cells_at(path.select { |cell| is_door? cell })
-
-          # TODO what if I'll get the key in the middle of the path, right before the door?
-          # maybe loop through the path and collect keys as you go
-          next if path_doors.any? { |door| !keys[key_for(door)] }
-
-          path_keys = cells_at(path.select { |cell| is_key? cell })
-
-          next_row, next_col = path.last
-
           next_keys = keys.dup
-          path_keys.each do |key|
-            next_keys[key] = true
+
+          closed_door = false
+
+          path.each do |pos|
+            next_keys[cell_at(pos)] = true if is_key?(pos)
+            closed_door = true if is_door?(pos) && !next_keys[key_for(cell_at(pos))]
           end
 
+          next if closed_door
+
+          next_row, next_col = path.last
           next_cost = cost + path.length - 1
 
           pq.push(state: [next_row, next_col, next_keys], cost: next_cost, priority: -next_cost)
@@ -223,12 +222,4 @@ maze1.robots_count.times do |index|
   maze1.calculate_all_paths!(maze1.robot_position(index))
 end
 
-maze1.calculated_paths(maze1.robot_position(0), maze1.key_position("a")).each do |path|
-  puts maze1.cells_at(path).join("")
-end
-
 puts maze1.find_min_path_to_all_keys.inspect
-
-# maze2 = Maze.new
-# maze2.four_robots!
-# puts maze2.calculate_path_to_collect_all_keys
