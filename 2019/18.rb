@@ -244,14 +244,35 @@ class Maze
   end
 end
 
-maze1 = Maze.new
+def part1
+  maze1 = Maze.new
 
-maze1.available_keys.each do |key|
-  maze1.calculate_all_paths!(maze1.key_position(key))
+  maze1.available_keys.each do |key|
+    maze1.calculate_all_paths!(maze1.key_position(key))
+  end
+
+  maze1.robots_count.times do |index|
+    maze1.calculate_all_paths!(maze1.robot_position(index))
+  end
+
+  node, distances, parents = maze1.find_min_path_to_all_keys
+
+  path = []
+  state = node[:state]
+
+  while state
+    robots = state.first
+
+    robots.each do |robot|
+      path.unshift robot
+    end
+
+    state = parents[state]
+  end
+
+  puts maze1.cells_at(path).join(" ")
+
+  node[:priority] * -1
 end
 
-maze1.robots_count.times do |index|
-  maze1.calculate_all_paths!(maze1.robot_position(index))
-end
-
-puts maze1.find_min_path_to_all_keys.first[:priority] * -1
+puts part1
