@@ -183,12 +183,6 @@ class Maze
   def find_min_path_to_all_keys
     # Dijkstra
 
-    pq = PriorityQueue.new
-    pq.push(number: 3, priority: 3)
-    pq.push(number: 4, priority: 4)
-    pq.push(number: -27, priority: -27)
-    pq.push(number: 0, priority: 0)
-
     distances = Hash.new(999_999_999_999)
     parents = {}
     visited = {}
@@ -303,6 +297,8 @@ def solve(four_robots)
 
   maze.four_robots! if four_robots
 
+  puts "precalculating all paths..."
+  start = Time.now
   maze.available_keys.each do |key|
     maze.calculate_all_paths!(maze.key_position(key))
   end
@@ -310,8 +306,12 @@ def solve(four_robots)
   maze.robots_count.times do |index|
     maze.calculate_all_paths!(maze.robot_position(index))
   end
+  puts "done in #{Time.now - start} seconds"
 
+  puts "calculating solution..."
+  start = Time.now
   solution = maze.find_min_path_to_all_keys
+  puts "done in #{Time.now - start} seconds"
 
   return nil unless solution
 
