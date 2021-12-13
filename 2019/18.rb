@@ -126,7 +126,7 @@ class Maze
     @calculated_paths[[from, to]]
   end
 
-  def find_min_path_to_all_keys
+  def find_min_path_to_all_keys_old
     pq = PriorityQueue.new
 
     @robots.each do |pos|
@@ -170,9 +170,83 @@ class Maze
     end
   end
 
+  def find_min_path_to_all_keys
+    # Dijkstra
+
+    distances = Hash.new(Float::INFINITY)
+    parent = {}
+    visited = {}
+
+    initial_state = robots_count.times.map do |index|
+      robot_position(index)
+    end
+
+    initial_state += [{}]
+
+    distances[initial_state] = 0
+
+    puts distances.inspect
+
+    pq = PriorityQueue.new
+    pq.push(state: initial_state, priority: 0)
+
+    loop do
+      node = pq.pop
+      break unless node
+
+      state = node[:state]
+
+      visited[state] = true
+
+      robots, keys = node[:state]
+
+      robots_count.times do |index|
+        pos = robots[index]
+
+        remaining_keys = available_keys - keys.keys
+
+        remaining_keys.each do |remaining_key|
+          calculated_paths(pos, key_position(remaining_key)).each do |path|
+            next_keys = keys.dup
+
+            closed_door = false
+
+            path.each do |pos|
+              next_keys[cell_at(pos)] = true if is_key?(pos)
+              closed_door = true if is_door?(pos) && !next_keys[key_for(cell_at(pos))]
+            end
+
+            next if closed_door
+
+            next_row, next_col = path.last
+
+            next_robots = robots.dup
+            robots[index] = [next_row, next_col]
+
+            next_state = [next_robots, next_keys]
+
+            next if visited[next_state]
+
+            # TODO pretty sure this > is a <
+            if distances[next_state] > distances[state] + path.length - 1
+              distances[next_state] = distances[state] + path.length - 1
+              parent[next_state] = state
+
+              pq.push(state: next_state, priority: -distances[next_state])
+            end
+          end
+        end
+      end
+    end
+
+    [distances, parent, visited]
+  end
+
   private
 
   def do_calculate_all_paths!(start, from, path, visited)
+    # DFS w/o early returns so that we exhaust all possibilities
+
     if start != from && is_key?(from)
       @calculated_paths[[start, from]] << path.dup
     end
