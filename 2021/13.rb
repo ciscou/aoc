@@ -52,8 +52,8 @@ end
 
 6.times do |y|
   line = 40.times.map do |x|
-    points[[x, y]] ? "#" : "."
+    points[[x, y]] ? "#" : " "
   end
 
-  puts line.join("").reverse
+  puts line.reverse.join(" ")
 end
