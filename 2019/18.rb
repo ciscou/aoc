@@ -9,9 +9,10 @@ class Maze
 
     @cells.length.times do |row|
       @cells.first.length.times do |col|
-        cell = @cells[row][col]
-        @available_keys[cell] = [row, col] if ("a".."z").include?(cell)
-        @robots << [row, col] if cell == "@"
+        pos = [row, col]
+
+        @available_keys[cell_at(pos)] = pos if is_key?(pos)
+        @robots << pos if is_robot?(pos)
       end
     end
   end
@@ -23,7 +24,7 @@ class Maze
   end
 
   def cells_at(path)
-    path.map(&method(:cell_at))
+    path.map { |pos| cell_at(pos) }
   end
 
   def robots_count
@@ -73,18 +74,13 @@ class Maze
   private
 
   def do_calculate_all_paths!(start, from, path, visited)
-    cell_from = cell_at(from)
-
-    if start != from && ("a".."z").include?(cell_from)
+    if start != from && is_key?(from)
       @calculated_paths[[start, from]] << path.dup
     end
 
     neighbours(from).each do |neighbour|
       next if visited[neighbour]
-
-      cell_neighbour = cell_at(neighbour)
-
-      next if cell_neighbour == "#"
+      next if is_wall?(neighbour)
 
       visited[neighbour] = true
       path.push(neighbour)
@@ -94,6 +90,22 @@ class Maze
       visited.delete(neighbour)
       path.pop
     end
+  end
+
+  def is_key?(pos)
+    ("a".."z").include?(cell_at(pos))
+  end
+
+  def is_door?(pos)
+    ("A".."Z").include?(cell_at(pos))
+  end
+
+  def is_robot?(pos)
+    cell_at(pos) == "@"
+  end
+
+  def is_wall?(pos)
+    cell_at(pos) == "#"
   end
 end
 
