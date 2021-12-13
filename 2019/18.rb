@@ -72,6 +72,39 @@ class Maze
     end
   end
 
+  def set_state!(state)
+    @cells.length.times do |row|
+      @cells[row].length.times do |col|
+        @cells[row][col] = "." if @cells[row][col] == "@"
+      end
+    end
+
+    @robots, @keys = state
+
+    @keys.keys.each do |key|
+      row, col = key_position(key)
+
+      @cells[row][col] = "."
+
+      @cells.length.times do |row|
+        @cells[row].length.times do |col|
+          @cells[row][col] = "." if @cells[row][col] == key.upcase
+        end
+      end
+    end
+
+    @robots.each do |row, col|
+      @cells[row][col] = "@"
+    end
+  end
+
+  def draw
+    @cells.length.times do |row|
+      line = @cells[row].length.times.map { |col| cell_at([row, col]) }
+      puts line.join("")
+    end
+  end
+
   def four_robots!
     robot = @robots.first
 
@@ -278,33 +311,76 @@ def solve(four_robots)
     maze.calculate_all_paths!(maze.robot_position(index))
   end
 
-  node, distances, parents = maze.find_min_path_to_all_keys
+  solution = maze.find_min_path_to_all_keys
 
-  path = []
+  return nil unless solution
+
+  node, distances, parents = solution
+
+  history = []
   state = node[:state]
 
   while state
-    robots = state.first
-
-    robots.each do |robot|
-      path.unshift robot
-    end
-
+    history.push(state)
     state = parents[state]
   end
 
-  puts maze.cells_at(path).join(" ")
+  [node[:priority] * -1, history.reverse]
+end
 
-  node[:priority] * -1
+def reconstruct(history, four_robots)
+  maze = Maze.new
+
+  maze.four_robots! if four_robots
+
+  last_state = nil
+  history.each do |state|
+    if last_state
+      last_robots = last_state.first
+      robots = state.first
+      moved_robot = (robots - last_robots).first
+
+      puts "Grab #{maze.cell_at(moved_robot)}"
+      $stdin.gets
+    end
+
+    last_state = state
+
+    maze.set_state!(state)
+    maze.draw
+    puts
+  end
 end
 
 def part1
-  solve(false)
+  solution = solve(false)
+
+  if solution
+    moves, history = solution
+
+    reconstruct(history, false)
+
+    puts "Total: #{moves} moves"
+    $stdin.gets
+  else
+    puts "no solution found!"
+  end
 end
 
 def part2
-  solve(true)
+  solution = solve(true)
+
+  if solution
+    moves, history = solution
+
+    reconstruct(history, true)
+
+    puts "Total: #{moves} moves"
+    $stdin.gets
+  else
+    puts "no solution found!"
+  end
 end
 
-puts part1
-puts part2
+part1
+part2
