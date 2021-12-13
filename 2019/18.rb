@@ -79,6 +79,8 @@ class Maze
     @cached_paths = {}
   end
 
+  attr_reader :available_keys # TODO: unexpose
+
   def four_robots!
     robot = @robots.first
 
@@ -197,6 +199,61 @@ class Maze
     @cached_paths[cache_key] = res
   end
 
+  def neighbours(pos)
+    row, col = pos
+
+    [
+      [-1,  0],
+      [ 1,  0],
+      [ 0, -1],
+      [ 0,  1],
+    ].map do |drow, dcol|
+      [row + drow, col + dcol]
+    end.reject do |row, col|
+      row < 0 ||
+      col < 0 ||
+      row >= @cells.length ||
+      col >= @cells.first.length
+    end
+  end
+
+  def calculate_all_paths_from_this_key_to_all_other_keys(start, the_end, path, visited)
+    # TODO
+    # TODO
+    # TODO
+    # TODO actually only return if we have collected all keys
+    # TODO actually do not return ever, as we need to exhaust all possibilities
+    # TODO maybe (maybe) try to be smart and remove paths that don't make sense
+    # TODO like if you have aBb bCc, you do not need aBbCc
+    # TODO maybe instead of returning add it to a list
+    # TODO
+    # TODO
+    # TODO
+
+    if start == the_end
+      return [path.dup]
+    end
+
+    res = []
+
+    neighbours(start).each do |adjacent|
+      cell = cell(adjacent)
+      # TODO: add 1 2 3 4 to . @ (four robots)
+      if !visited[adjacent] && ([".", "@"].include?(cell) || ("a".."z").include?(cell) || ("A".."Z").include?(cell))
+        visited[adjacent] = true
+        path.push(adjacent)
+
+        # wtf using cache is slower???
+        res += calculate_all_paths_from_this_key_to_all_other_keys(adjacent, the_end, path, visited)
+
+        path.pop
+        visited[adjacent] = false
+      end
+    end
+
+    res
+  end
+
   def calculate_path_to_collect_all_keys_2(from = nil, keys = nil)
     from ||= @robots.first
     keys ||= @available_keys.keys
@@ -224,6 +281,29 @@ class Maze
   end
 
   def calculate_path_to_collect_all_keys
+    precalculated = {}
+    @available_keys.values.each do |start|
+      precalculated[start] = []
+      @available_keys.values.each do |the_end|
+        next if start == the_end
+        precalculated[start] += calculate_all_paths_from_this_key_to_all_other_keys(start, the_end, [start], { start => true })
+      end
+    end
+    @robots.each do |start|
+      precalculated[start] = []
+      @available_keys.values.each do |the_end|
+        precalculated[start] += calculate_all_paths_from_this_key_to_all_other_keys(start, the_end, [start], { start => true })
+      end
+    end
+
+    # precalculated.each do |pos, paths|
+    #   puts cell(pos)
+    #   paths.each do |path|
+    #     puts "  #{path.map { |pos| cell(pos) }.join(" ")}"
+    #     gets
+    #   end
+    # end
+
     pq = PriorityQueue.new
     visited = Hash.new(Float::INFINITY)
 
@@ -237,33 +317,84 @@ class Maze
       robots, collected_keys = node[:state]
       total_moves = node[:total_moves]
 
-      @collected_keys = collected_keys.split("")
+      collected_keys = collected_keys.split("")
 
-      return total_moves if all_keys_collected?
+      if (@available_keys.keys - collected_keys).empty?
+        # puts "done!!!"
+        # puts node.inspect
+        # gets
+        return total_moves
+      end
 
-      next if total_moves > visited[[robots, @collected_keys.sort.join("")]]
+      next if total_moves > visited[[robots, collected_keys.sort.join("")]]
 
-      distances = robots.map { |row, col| calculate_path([row, col], @available_keys.keys - @collected_keys) }
       candidates = []
-      robots.length.times { |i| candidates += remaining_keys.map { |k| [i, k, distances[i][k]] } }
-      candidates.reject! { |c| c.last.nil? }
+      robots.each.with_index do |pos, index|
+        # puts node.inspect
+        # puts precalculated.inspect
+        # gets
+
+        precalculated[pos].each { |path| candidates << [index, path] }
+      end
+
+      # candidates.map(&:last).each do |path|
+      #   puts path.map { |pos| cell(pos) }.join("")
+      #   gets
+      # end
 
       candidates.each do |candidate|
-        index, key, moves = candidate
-        pos = @available_keys[key]
+        index, paths = candidate
+
+        key = cell(paths.last)
+        moves = paths.length - 1 # TODO -1???
+        pos = @available_keys[key] || @robots.first # TODO or 1234 (four robots)
+
+        # puts paths.map { |pos| cell(pos) }.join("")
+        # puts "total moves is #{total_moves}"
+        # puts "moves is #{moves}"
+        # gets
+
+        path_doors = paths.map { |pos| cell(pos) }.select { |cell| ("A".."Z").include?(cell) }
+
+        # if collected_keys.any?
+        #   puts paths.map { |pos| cell(pos) }.join("")
+        #   puts [path_doors, collected_keys].inspect
+        #   gets
+        # end
+
+        # TODO avoid going to the same key twice????? or is it already visited???
+        next if collected_keys.include?(cell(paths.last))
+        next if (path_doors - collected_keys.map(&:upcase)).any?
+
         total_moves += moves
 
-        @collected_keys.push(key)
+        collected_keys_was = collected_keys.dup
+        paths.map { |pos| cell(pos) }.select { |cell| ("a".."z").include?(cell) }.each { |key| collected_keys.push(key) unless collected_keys.include?(key) }
 
         next_robots = robots.map { |row, col| [row, col] }
+
+        # puts paths.map { |pos| cell(pos) }.join("")
+        # puts key.inspect
+        # puts collected_keys.inspect
+        # puts path_doors.inspect
+        # puts next_robots.inspect
+        # puts pos
+        # gets
+
         next_robots[index] = [pos[0], pos[1]]
 
-        if total_moves < visited[[next_robots, @collected_keys.sort.join("")]]
-          visited[[next_robots, @collected_keys.sort.join("")]] = total_moves
-          pq.push(state: [next_robots, @collected_keys.join("")], total_moves: total_moves, priority: -total_moves * @available_keys.length - @collected_keys.length)
+        if total_moves < visited[[next_robots, collected_keys.sort.join("")]]
+          # puts paths.map { |pos| cell(pos) }.join("")
+          # puts key.inspect
+          # puts collected_keys.inspect
+          # puts path_doors.inspect
+          # gets
+
+          visited[[next_robots, collected_keys.sort.join("")]] = total_moves
+          pq.push(state: [next_robots, collected_keys.join("")], total_moves: total_moves, priority: -total_moves * @available_keys.length - collected_keys.uniq.length)
         end
 
-        @collected_keys.pop
+        collected_keys = collected_keys_was
         total_moves -= moves
       end
     end
@@ -271,7 +402,7 @@ class Maze
 end
 
 maze1 = Maze.new
-puts maze1.calculate_path_to_collect_all_keys_2
+puts maze1.calculate_path_to_collect_all_keys
 
 # maze2 = Maze.new
 # maze2.four_robots!
