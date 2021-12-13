@@ -1,5 +1,7 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
+$wasted = 0
+
 # stolen from https://gist.github.com/brianstorti/e20300eb2e7d62b87849
 class PriorityQueue
   attr_reader :elements
@@ -68,7 +70,6 @@ class Maze
         @available_keys[cell] = [row, col] if ("a".."z").include?(cell)
         if cell == "@"
           @robots << [row, col]
-          @cells[row][col] = "."
         end
       end
     end
@@ -94,8 +95,8 @@ class Maze
       [robot[0]+1, robot[1]+1],
     ]
 
-    @robots.each do |row, col|
-      @cells[row][col] = "."
+    @robots.each.with_index do |robot, i|
+      @cells[robot[0]][robot[1]] = "#{i+1}"
     end
   end
 
@@ -113,7 +114,7 @@ class Maze
     cell = cell(robot)
 
     return false if cell == "#"
-    return false if ("A".."Z").include?(cell) && !@collected_keys.include?(cell.downcase)
+    # return false if ("A".."Z").include?(cell) && !@collected_keys.include?(cell.downcase)
 
     true
   end
@@ -138,8 +139,18 @@ class Maze
     @available_keys.keys - @collected_keys
   end
 
-  def calculate_path(from)
-    cache_key = [from[0], from[1], @collected_keys.sort.join("")]
+  def calculate_path(from, keys)
+    start = Time.now
+    res = _calculate_path(from, keys)
+    $wasted += Time.now - start
+    res
+  end
+
+  def _calculate_path(from, keys)
+    # TODO calcula todos los paths posibles desde from hasta todas las demas keys
+    # guarda que puertas se atraviesan en cada uno de ellos
+    # devuelve el mejor para las llaves que tenemos
+    cache_key = [from, keys.sort.join("")]
     if @cached_paths.key?(cache_key)
       return @cached_paths[cache_key]
     end
@@ -157,7 +168,7 @@ class Maze
       pos = [row, col]
 
       cell = cell(pos)
-      if ("a".."z").include?(cell)
+      if keys.include?(cell) # TODO: ??? && !@collected_keys.include?(cell)
         res[cell] = moves
       end
 
@@ -169,9 +180,14 @@ class Maze
       ].each do |drow, dcol|
         move(pos, drow, dcol)
 
-        if !visited[[pos[0], pos[1]]] && valid_position?(pos)
-          visited[[pos[0], pos[1]]] = true
-          queue.push([pos[0], pos[1], moves + 1])
+        cell = cell(pos)
+        if ("A".."Z").include?(cell) && keys.include?(cell.downcase)
+          # skip, we don't have the key
+        else
+          if !visited[[pos[0], pos[1]]] && valid_position?(pos)
+            visited[[pos[0], pos[1]]] = true
+            queue.push([pos[0], pos[1], moves + 1])
+          end
         end
 
         move(pos, -drow, -dcol)
@@ -179,21 +195,47 @@ class Maze
     end
 
     @cached_paths[cache_key] = res
-    res
+  end
+
+  def calculate_path_to_collect_all_keys_2(from = nil, keys = nil)
+    from ||= @robots.first
+    keys ||= @available_keys.keys
+
+    return 0 if keys.empty?
+
+    @cache2 ||= {}
+
+    cache_key = [from, keys.sort.uniq.join("")]
+    if @cache2.key?(cache_key)
+        return @cache2[cache_key]
+    end
+
+    result = Float::INFINITY
+    distance = calculate_path(from, keys)
+    candidates = remaining_keys.map { |k| [k, distance[k]] }
+    candidates.reject! { |c| c.last.nil? }
+
+    candidates.each do |k, v|
+       d = v + calculate_path_to_collect_all_keys_2(@available_keys[k], keys - [k])
+       result = [result, d].min
+    end
+
+    @cache2[cache_key] = result
   end
 
   def calculate_path_to_collect_all_keys
     pq = PriorityQueue.new
     visited = Hash.new(Float::INFINITY)
 
-    pq.push(state: [@robots.map { |row, col| [row, col] }, "", 0], priority: 0)
+    pq.push(state: [@robots.map { |row, col| [row, col] }, ""], total_moves: 0, priority: 0)
     visited[[@robots.map { |row, col| [row, col] }, ""]] = 0
 
     loop do
       node = pq.pop
       break if node.nil?
 
-      robots, collected_keys, total_moves = node[:state]
+      robots, collected_keys = node[:state]
+      total_moves = node[:total_moves]
 
       @collected_keys = collected_keys.split("")
 
@@ -201,7 +243,7 @@ class Maze
 
       next if total_moves > visited[[robots, @collected_keys.sort.join("")]]
 
-      distances = robots.map { |row, col| calculate_path([row, col]) }
+      distances = robots.map { |row, col| calculate_path([row, col], @available_keys.keys - @collected_keys) }
       candidates = []
       robots.length.times { |i| candidates += remaining_keys.map { |k| [i, k, distances[i][k]] } }
       candidates.reject! { |c| c.last.nil? }
@@ -218,7 +260,7 @@ class Maze
 
         if total_moves < visited[[next_robots, @collected_keys.sort.join("")]]
           visited[[next_robots, @collected_keys.sort.join("")]] = total_moves
-          pq.push(state: [next_robots, @collected_keys.join(""), total_moves], priority: -total_moves * @available_keys.length - @collected_keys.length)
+          pq.push(state: [next_robots, @collected_keys.join("")], total_moves: total_moves, priority: -total_moves * @available_keys.length - @collected_keys.length)
         end
 
         @collected_keys.pop
@@ -228,9 +270,11 @@ class Maze
   end
 end
 
-# maze1 = Maze.new
-# puts maze1.calculate_path_to_collect_all_keys
+maze1 = Maze.new
+puts maze1.calculate_path_to_collect_all_keys_2
 
-maze2 = Maze.new
-maze2.four_robots!
-puts maze2.calculate_path_to_collect_all_keys
+# maze2 = Maze.new
+# maze2.four_robots!
+# puts maze2.calculate_path_to_collect_all_keys
+
+puts $wasted
