@@ -358,10 +358,10 @@ def part1
   if solution
     moves, history = solution
 
-    reconstruct(history, false)
+    # reconstruct(history, false)
 
     puts "Total: #{moves} moves"
-    $stdin.gets
+    # $stdin.gets
   else
     puts "no solution found!"
   end
@@ -373,10 +373,10 @@ def part2
   if solution
     moves, history = solution
 
-    reconstruct(history, true)
+    # reconstruct(history, true)
 
     puts "Total: #{moves} moves"
-    $stdin.gets
+    # $stdin.gets
   else
     puts "no solution found!"
   end
