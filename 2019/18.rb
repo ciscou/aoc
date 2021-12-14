@@ -170,21 +170,6 @@ class Maze
     end
   end
 
-  def calculate_all_paths!(start)
-    @calculated_paths ||= Hash.new { |h1, k1| h1[k1] = Hash.new { |h2, k2| h2[k2] = [] } }
-
-    do_calculate_all_paths!(start, start, [start], start => true)
-  end
-
-  def remove_redundant_paths!
-    @calculated_paths.each do |from, v|
-      v.each do |to, paths|
-        paths.sort_by!(&:length)
-        paths.uniq! { |path| path.select { |pos| is_door?(pos) || is_key?(pos) } }
-      end
-    end
-  end
-
   def print_all_paths
     @calculated_paths.each do |from, v1|
       v1.each do |to, paths|
@@ -197,8 +182,15 @@ class Maze
     end
   end
 
-  def calculated_paths(from, to)
-    @calculated_paths[from][to]
+  def calculated_paths(from)
+    @calculated_paths ||= {}
+
+    unless @calculated_paths.key?(from)
+      @calculated_paths[from] = {}
+      calculate_all_paths!(from)
+    end
+
+    @calculated_paths[from].values
   end
 
   def find_min_path_to_all_keys
@@ -231,37 +223,32 @@ class Maze
       robots_count.times do |index|
         pos = robots[index]
 
-        remaining_keys = available_keys - keys.keys
+        calculated_paths(pos).each do |path|
+          next_keys = keys.dup
 
-        # might need to revisit a key as an intermediate step
-        available_keys.each do |remaining_key|
-          calculated_paths(pos, key_position(remaining_key)).each do |path|
-            next_keys = keys.dup
+          closed_door = false
 
-            closed_door = false
+          path.each do |pos|
+            next_keys[cell_at(pos)] = true if is_key?(pos)
+            closed_door = true if is_door?(pos) && !next_keys[key_for(cell_at(pos))]
+          end
 
-            path.each do |pos|
-              next_keys[cell_at(pos)] = true if is_key?(pos)
-              closed_door = true if is_door?(pos) && !next_keys[key_for(cell_at(pos))]
-            end
+          next if closed_door
 
-            next if closed_door
+          next_row, next_col = path.last
 
-            next_row, next_col = path.last
+          next_robots = robots.dup
+          next_robots[index] = [next_row, next_col]
 
-            next_robots = robots.dup
-            next_robots[index] = [next_row, next_col]
+          next_state = [next_robots, next_keys]
 
-            next_state = [next_robots, next_keys]
+          next if visited[next_state]
 
-            next if visited[next_state]
+          if distances[next_state] > distances[state] + path.length - 1
+            distances[next_state] = distances[state] + path.length - 1
+            parents[next_state] = state
 
-            if distances[next_state] > distances[state] + path.length - 1
-              distances[next_state] = distances[state] + path.length - 1
-              parents[next_state] = state
-
-              pq.push(state: next_state, priority: -distances[next_state])
-            end
+            pq.push(state: next_state, priority: -distances[next_state])
           end
         end
       end
@@ -284,6 +271,10 @@ class Maze
     doors
   end
 
+  def calculate_all_paths!(start)
+    do_calculate_all_paths!(start, start, [start], start => true)
+  end
+
   def do_calculate_all_paths!(start, from, path, visited)
     # DFS w/o early returns so that we exhaust all possibilities
     # Well, actually we early return to discard redundant paths
@@ -292,21 +283,19 @@ class Maze
       doors = closed_doors(path)
       discard_this_path = false
 
-      @calculated_paths[start].each do |to, other_paths|
-        discard_this_path ||= other_paths.any? do |other_path|
-          other_doors = closed_doors(other_path)
+      @calculated_paths[start].each do |to, other_path|
+        next unless other_path
 
-          other_path.length <= path.length && (doors - other_doors).empty? && path.include?(other_path.last)
-        end
+        other_doors = closed_doors(other_path)
+
+        discard_this_path ||= other_path.length <= path.length && (doors - other_doors).empty? && path.include?(other_path.last)
 
         break if discard_this_path
       end
 
       unless discard_this_path
-        @calculated_paths[start][from] << path.dup
+        @calculated_paths[start][from] = path.dup
       end
-
-      return
     end
 
     neighbours(from).each do |neighbour|
@@ -353,20 +342,20 @@ def solve(four_robots)
 
   maze.four_robots! if four_robots
 
-  print "precalculating all paths... "
-  start = Time.now
-  maze.available_keys.each do |key|
-    maze.calculate_all_paths!(maze.key_position(key))
-  end
+# print "precalculating all paths... "
+# start = Time.now
+# maze.available_keys.each do |key|
+#   maze.calculate_all_paths!(maze.key_position(key))
+# end
 
-  maze.robots_count.times do |index|
-    maze.calculate_all_paths!(maze.robot_position(index))
-  end
+# maze.robots_count.times do |index|
+#   maze.calculate_all_paths!(maze.robot_position(index))
+# end
 
-  maze.remove_redundant_paths!
+# maze.remove_redundant_paths!
 
-  # maze.print_all_paths
-  puts "done in #{Time.now - start} seconds"
+# # maze.print_all_paths
+# puts "done in #{Time.now - start} seconds"
 
   print "calculating solution... "
   start = Time.now
