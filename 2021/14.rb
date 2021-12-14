@@ -24,18 +24,16 @@ end
 
 polymer = TEMPLATE.chars
 
-p polymer.tally.sort_by(&:first)
+stats = [polymer.tally]
 
-10.times do
+15.times do |i|
   polymer = evolve(polymer)
-  p polymer.tally.sort_by(&:first)
+  stats << polymer.tally
 end
 
-# puts substract(polymer)
+elements = stats.first.map(&:first)
+puts "  " + elements.map { |e| e.ljust(8, " ") }.join(" | ")
 
-(40 - 10).times do
-  polymer = evolve(polymer)
-  p polymer.tally.sort_by(&:first)
+stats.each do |stat|
+  puts "  " + elements.map { |e| stat[e].to_s.rjust(8, " ") }.join(" | ")
 end
-
-# puts substract(polymer)
