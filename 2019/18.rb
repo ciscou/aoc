@@ -233,7 +233,8 @@ class Maze
 
         remaining_keys = available_keys - keys.keys
 
-        remaining_keys.each do |remaining_key|
+        # might need to revisit a key as an intermediate step
+        available_keys.each do |remaining_key|
           calculated_paths(pos, key_position(remaining_key)).each do |path|
             next_keys = keys.dup
 
@@ -285,21 +286,15 @@ class Maze
 
   def do_calculate_all_paths!(start, from, path, visited)
     # DFS w/o early returns so that we exhaust all possibilities
-    # TODO actually we early return to discard redundant paths
-
-#   puts @calculated_paths.sum { |k, v| v.sum(&:size) }
+    # Well, actually we early return to discard redundant paths
 
     if start != from && is_key?(from)
       doors = closed_doors(path)
       discard_this_path = false
 
-#     puts "about to add this path"
-#     puts "  " + cells_at(path.reject { |pos| is_empty?(pos) }).join("")
-#     puts "the current paths with the same start is"
       @calculated_paths[start].each do |to, other_paths|
         discard_this_path ||= other_paths.any? do |other_path|
           other_doors = closed_doors(other_path)
-#         puts "  " + cells_at(other_path.reject { |pos| is_empty?(pos) }).join("")
 
           other_path.length <= path.length && (doors - other_doors).empty? && path.include?(other_path.last)
         end
@@ -307,15 +302,11 @@ class Maze
         break if discard_this_path
       end
 
-      if discard_this_path
-#       puts "discarding!"
-#       $stdin.gets
-        return
-      else
-#       puts "adding"
-#       $stdin.gets
+      unless discard_this_path
         @calculated_paths[start][from] << path.dup
       end
+
+      return
     end
 
     neighbours(from).each do |neighbour|
