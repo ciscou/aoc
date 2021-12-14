@@ -171,13 +171,56 @@ class Maze
   end
 
   def calculate_all_paths!(start)
-    @calculated_paths ||= Hash.new { |h, k| h[k] = [] }
+    @calculated_paths ||= Hash.new { |h1, k1| h1[k1] = Hash.new { |h2, k2| h2[k2] = [] } }
 
     do_calculate_all_paths!(start, start, [start], start => true)
   end
 
+  def remove_redundant_paths!
+    removed = 0
+
+    @calculated_paths.each do |from, v|
+      v.each do |to, paths|
+        paths.uniq! { |path| [path.length, path.select { |pos| is_door?(pos) }] }
+
+        to_be_removed = []
+
+        paths.each do |path1|
+          doors1 = path1.select { |pos| is_door?(pos) }
+
+          paths.each do |path2|
+            doors2 = path2.select { |pos| is_door?(pos) }
+
+            next if path1 == path2
+            next unless path1.length > path2.length
+
+            if (doors1 - doors2).empty? && (doors2 - doors1).empty?
+              to_be_removed << path1
+            else
+              # TODO: we could probably remove more stuff even so...
+            end
+          end
+        end
+
+        to_be_removed.each { |x| paths.delete(x) }
+      end
+    end
+  end
+
+  def print_all_paths
+    @calculated_paths.each do |from, v1|
+      v1.each do |to, paths|
+        puts "Paths from #{cell_at(from)} to #{cell_at(to)}"
+
+        paths.each do |path|
+          puts "  #{cells_at(path.select { |pos| is_robot?(pos) || is_key?(pos) || is_door?(pos) })}"
+        end
+      end
+    end
+  end
+
   def calculated_paths(from, to)
-    @calculated_paths[[from, to]]
+    @calculated_paths[from][to]
   end
 
   def find_min_path_to_all_keys
@@ -254,7 +297,7 @@ class Maze
     # DFS w/o early returns so that we exhaust all possibilities
 
     if start != from && is_key?(from)
-      @calculated_paths[[start, from]] << path.dup
+      @calculated_paths[start][from] << path.dup
     end
 
     neighbours(from).each do |neighbour|
@@ -290,6 +333,10 @@ class Maze
   def is_wall?(pos)
     cell_at(pos) == "#"
   end
+
+  def is_empty?(pos)
+    cell_at(pos) == "."
+  end
 end
 
 def solve(four_robots)
@@ -297,7 +344,7 @@ def solve(four_robots)
 
   maze.four_robots! if four_robots
 
-  puts "precalculating all paths..."
+  print "precalculating all paths... "
   start = Time.now
   maze.available_keys.each do |key|
     maze.calculate_all_paths!(maze.key_position(key))
@@ -306,9 +353,13 @@ def solve(four_robots)
   maze.robots_count.times do |index|
     maze.calculate_all_paths!(maze.robot_position(index))
   end
+
+  maze.remove_redundant_paths!
+
+# maze.print_all_paths
   puts "done in #{Time.now - start} seconds"
 
-  puts "calculating solution..."
+  print "calculating solution... "
   start = Time.now
   solution = maze.find_min_path_to_all_keys
   puts "done in #{Time.now - start} seconds"
@@ -382,5 +433,10 @@ def part2
   end
 end
 
+puts "part 1"
 part1
+
+puts
+
+puts "part 2"
 part2
