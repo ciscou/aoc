@@ -177,32 +177,10 @@ class Maze
   end
 
   def remove_redundant_paths!
-    removed = 0
-
     @calculated_paths.each do |from, v|
       v.each do |to, paths|
-        paths.uniq! { |path| [path.length, path.select { |pos| is_door?(pos) }] }
-
-        to_be_removed = []
-
-        paths.each do |path1|
-          doors1 = path1.select { |pos| is_door?(pos) }
-
-          paths.each do |path2|
-            doors2 = path2.select { |pos| is_door?(pos) }
-
-            next if path1 == path2
-            next unless path1.length > path2.length
-
-            if (doors1 - doors2).empty? && (doors2 - doors1).empty?
-              to_be_removed << path1
-            else
-              # TODO: we could probably remove more stuff even so...
-            end
-          end
-        end
-
-        to_be_removed.each { |x| paths.delete(x) }
+        paths.sort_by!(&:length)
+        paths.uniq! { |path| path.select { |pos| is_door?(pos) || is_key?(pos) } }
       end
     end
   end
@@ -293,11 +271,51 @@ class Maze
 
   private
 
+  def closed_doors(path)
+    doors = []
+    keys = {}
+
+    path.each do |pos|
+      keys[cell_at(pos)] = true if is_key?(pos)
+      doors << pos if is_door?(pos) && !keys[key_for(cell_at(pos))]
+    end
+
+    doors
+  end
+
   def do_calculate_all_paths!(start, from, path, visited)
     # DFS w/o early returns so that we exhaust all possibilities
+    # TODO actually we early return to discard redundant paths
+
+#   puts @calculated_paths.sum { |k, v| v.sum(&:size) }
 
     if start != from && is_key?(from)
-      @calculated_paths[start][from] << path.dup
+      doors = closed_doors(path)
+      discard_this_path = false
+
+#     puts "about to add this path"
+#     puts "  " + cells_at(path.reject { |pos| is_empty?(pos) }).join("")
+#     puts "the current paths with the same start is"
+      @calculated_paths[start].each do |to, other_paths|
+        discard_this_path ||= other_paths.any? do |other_path|
+          other_doors = closed_doors(other_path)
+#         puts "  " + cells_at(other_path.reject { |pos| is_empty?(pos) }).join("")
+
+          other_path.length <= path.length && (doors - other_doors).empty? && path.include?(other_path.last)
+        end
+
+        break if discard_this_path
+      end
+
+      if discard_this_path
+#       puts "discarding!"
+#       $stdin.gets
+        return
+      else
+#       puts "adding"
+#       $stdin.gets
+        @calculated_paths[start][from] << path.dup
+      end
     end
 
     neighbours(from).each do |neighbour|
@@ -356,7 +374,7 @@ def solve(four_robots)
 
   maze.remove_redundant_paths!
 
-# maze.print_all_paths
+  # maze.print_all_paths
   puts "done in #{Time.now - start} seconds"
 
   print "calculating solution... "
