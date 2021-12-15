@@ -57,14 +57,36 @@ end
 
 class Maze
   def initialize
-    @cells = INPUT.map(&:chars)
+    @cells = INPUT.map { |line| line.chars.map(&:to_i) }
+    @height = @cells.length
+    @width = @cells.first.length
+  end
+
+  def expand!
+    new_cells = []
+
+    @height.times do |row|
+      @width.times do |col|
+        5.times.map do |row_offset|
+          5.times.map do |col_offset|
+            new_risk = @cells[row][col] + row_offset + col_offset
+            new_risk -= 9 if new_risk > 9
+
+            new_cells[row + row_offset * @height] ||= []
+            new_cells[row + row_offset * @height][col + col_offset * @width] = new_risk
+          end
+        end
+      end
+    end
+
+    @cells = new_cells
     @height = @cells.length
     @width = @cells.first.length
   end
 
   def draw
-    @cells.length.times do |row|
-      line = @cells[row].length.times.map { |col| cell_at([row, col]) }
+    @height.times do |row|
+      line = @width.times.map { |col| cell_at([row, col]) }
       puts line.join("")
     end
   end
@@ -92,8 +114,8 @@ class Maze
     end.reject do |row, col|
       row < 0 ||
       col < 0 ||
-      row >= @cells.length ||
-      col >= @cells.first.length
+      row >= @height ||
+      col >= @width
     end
   end
 
@@ -120,8 +142,7 @@ class Maze
 
         visited[neighbour] = true
 
-        row, col = neighbour
-        risk = cell_at(neighbour).to_i
+        risk = cell_at(neighbour)
 
         pq.push(position: neighbour, total_risk: total_risk + risk, priority: -total_risk - risk)
       end
@@ -131,4 +152,8 @@ class Maze
   end
 end
 
-puts Maze.new.find_min_risk_path
+maze = Maze.new
+puts maze.find_min_risk_path
+
+maze.expand!
+puts maze.find_min_risk_path
