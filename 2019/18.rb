@@ -172,22 +172,19 @@ class Maze
 
   def print_all_paths
     @calculated_paths.each do |from, v1|
-      v1.each do |to, paths|
-        puts "Paths from #{cell_at(from)} to #{cell_at(to)}"
-
-        paths.each do |path|
-          puts "  #{cells_at(path.select { |pos| is_robot?(pos) || is_key?(pos) || is_door?(pos) })}"
-        end
+      v1.each do |to, path|
+        print "Path from #{cell_at(from)} to #{cell_at(to)}: "
+        puts cells_at(path.select { |pos| is_robot?(pos) || is_key?(pos) || is_door?(pos) }).join("")
       end
     end
   end
 
-  def calculated_paths(from)
+  def calculated_paths(from, keys)
     @calculated_paths ||= {}
 
     unless @calculated_paths.key?(from)
       @calculated_paths[from] = {}
-      calculate_all_paths!(from)
+      calculate_all_paths!(from, keys)
     end
 
     @calculated_paths[from].values
@@ -220,20 +217,21 @@ class Maze
 
       return [node, distances, parents] if keys.size == available_keys.size
 
+      $nodes_count += 1
+
       robots_count.times do |index|
         pos = robots[index]
 
-        calculated_paths(pos).each do |path|
-          next_keys = keys.dup
+        calculated_paths(pos, keys).each do |path|
+          next if keys[cell_at(path.last)]
 
-          closed_door = false
+          next_keys = keys.dup
 
           path.each do |pos|
             next_keys[cell_at(pos)] = true if is_key?(pos)
-            closed_door = true if is_door?(pos) && !next_keys[key_for(cell_at(pos))]
           end
 
-          next if closed_door
+          next if closed_doors(path, next_keys).any?
 
           next_row, next_col = path.last
 
@@ -259,9 +257,8 @@ class Maze
 
   private
 
-  def closed_doors(path)
+  def closed_doors(path, keys = {})
     doors = []
-    keys = {}
 
     path.each do |pos|
       keys[cell_at(pos)] = true if is_key?(pos)
@@ -271,45 +268,56 @@ class Maze
     doors
   end
 
-  def calculate_all_paths!(start)
-    do_calculate_all_paths!(start, start, [start], start => true)
+  def calculate_all_paths!(start, keys)
+    do_calculate_all_paths!(start, start, [start], keys, start => true)
   end
 
-  def do_calculate_all_paths!(start, from, path, visited)
+  def do_calculate_all_paths!(start, from, path, keys, visited)
     # DFS w/o early returns so that we exhaust all possibilities
     # Well, actually we early return to discard redundant paths
 
-    if start != from && is_key?(from)
+    if path.length > 1 && is_key?(from)
+      # TODO this optimization fails if a key position needs to be visited again
+      # as an intermediate step to get another key. It works for part1 and part2
+      # but breaks for some examples
+      return if keys[cell_at(from)]
+
       doors = closed_doors(path)
-      discard_this_path = false
+      add_this_path = false
 
-      @calculated_paths[start].each do |to, other_path|
-        next unless other_path
-
+      other_path = @calculated_paths[start][from]
+      if other_path
         other_doors = closed_doors(other_path)
 
-        discard_this_path ||= other_path.length <= path.length && (doors - other_doors).empty? && path.include?(other_path.last)
-
-        break if discard_this_path
+        add_this_path = true if path.length < other_path.length
+        add_this_path = true if (doors - other_doors).empty? && (other_doors - doors).any?
+      else
+        add_this_path = true
       end
 
-      unless discard_this_path
+      if add_this_path
         @calculated_paths[start][from] = path.dup
+      else
+        "ignoring path"
       end
     end
+
+    $coordinates_count += 1
+
+    visited[from] = true
 
     neighbours(from).each do |neighbour|
       next if visited[neighbour]
       next if is_wall?(neighbour)
 
-      visited[neighbour] = true
       path.push(neighbour)
 
-      do_calculate_all_paths!(start, neighbour, path, visited)
+      do_calculate_all_paths!(start, neighbour, path, keys, visited)
 
-      visited.delete(neighbour)
       path.pop
     end
+
+    visited[from] = false
   end
 
   def key_for(door)
@@ -338,31 +346,24 @@ class Maze
 end
 
 def solve(four_robots)
+  $coordinates_count = 0
+  $nodes_count = 0
+
   maze = Maze.new
 
   maze.four_robots! if four_robots
-
-# print "precalculating all paths... "
-# start = Time.now
-# maze.available_keys.each do |key|
-#   maze.calculate_all_paths!(maze.key_position(key))
-# end
-
-# maze.robots_count.times do |index|
-#   maze.calculate_all_paths!(maze.robot_position(index))
-# end
-
-# maze.remove_redundant_paths!
-
-# # maze.print_all_paths
-# puts "done in #{Time.now - start} seconds"
 
   print "calculating solution... "
   start = Time.now
   solution = maze.find_min_path_to_all_keys
   puts "done in #{Time.now - start} seconds"
 
-  return nil unless solution
+  # maze.print_all_paths
+
+  unless solution
+    puts "no solution found!"
+    return
+  end
 
   node, distances, parents = solution
 
@@ -373,6 +374,13 @@ def solve(four_robots)
     history.push(state)
     state = parents[state]
   end
+
+  moves, history = solution
+
+  # reconstruct(history, false)
+
+  puts "Processed #{$coordinates_count} coordinates and #{$nodes_count} nodes"
+  puts "Found solution in #{moves} moves"
 
   [node[:priority] * -1, history.reverse]
 end
@@ -402,33 +410,11 @@ def reconstruct(history, four_robots)
 end
 
 def part1
-  solution = solve(false)
-
-  if solution
-    moves, history = solution
-
-    # reconstruct(history, false)
-
-    puts "Total: #{moves} moves"
-    # $stdin.gets
-  else
-    puts "no solution found!"
-  end
+  solve(false)
 end
 
 def part2
-  solution = solve(true)
-
-  if solution
-    moves, history = solution
-
-    # reconstruct(history, true)
-
-    puts "Total: #{moves} moves"
-    # $stdin.gets
-  else
-    puts "no solution found!"
-  end
+  solve(true)
 end
 
 puts "part 1"
