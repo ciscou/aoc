@@ -163,7 +163,7 @@ class Maze
     visited[from] = true
 
     until queue.empty?
-      pos, dist = queue.pop
+      pos, dist = queue.shift
 
       return dist if pos == to
 

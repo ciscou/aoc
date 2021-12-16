@@ -59,18 +59,18 @@ class Cache
   def initialize
     @hits = 0
     @misses = 0
-    @elems = {}
+    @entries = {}
   end
 
   attr_reader :hits, :misses
 
   def get_or_put(key, &block)
-    if @elems.key?(key)
+    if @entries.key?(key)
       @hits += 1
-      @elems[key]
+      @entries[key]
     else
       @misses += 1
-      @elems[key] = block.call
+      @entries[key] = block.call
     end
   end
 end
@@ -195,40 +195,45 @@ class Maze
   def solve
     @key_distances_cache = Cache.new
 
-    queue = PriorityQueue.new
+    # current positions, distance travelled, collected keys
+    initial_state = [robots_count.times.map { |i| robot_position(i) }, 0, {}]
 
-    # TODO more robots?
-    queue.push(
-      state: [robot_position(0), 0, {}], # current position, distance travelled, collected keys
+    pq = PriorityQueue.new
+    pq.push(
+      state: initial_state,
       priority: 0
     )
 
     visited = {}
 
     loop do
-      node = queue.pop
+      node = pq.pop
       break if node.nil?
 
       state = node[:state]
-      pos, dist, collected_keys = state
+      positions, dist, collected_keys = state
 
       return dist if (available_keys - collected_keys.keys).empty?
 
-      next if visited[[pos, collected_keys]]
-      visited[[pos, collected_keys]] = true
+      next if visited[[positions, collected_keys]]
+      visited[[positions, collected_keys]] = true
 
-      # TODO more robots?
-      calculate_distances(pos).each do |candidate_key|
-        key_pos, key_dist, crossed_doors = candidate_key
-        key = cell_at(key_pos)
+      positions.each.with_index do |pos, i|
+        calculate_distances(pos).each do |candidate_key|
+          key_pos, key_dist, crossed_doors = candidate_key
+          key = cell_at(key_pos)
 
-        next if collected_keys[key]
-        next unless crossed_doors.keys.all? { |door| collected_keys[key_for(door)] }
+          next if collected_keys[key]
+          next unless crossed_doors.keys.all? { |door| collected_keys[key_for(door)] }
 
-        queue.push(
-          state: [key_pos, dist + key_dist, collected_keys.merge(key => true)],
-          priority: -(dist + key_dist)
-        )
+          next_positions = positions.dup
+          next_positions[i] = key_pos
+
+          pq.push(
+            state: [next_positions, dist + key_dist, collected_keys.merge(key => true)],
+            priority: -(dist + key_dist)
+          )
+        end
       end
     end
 
@@ -244,20 +249,24 @@ class Maze
   def do_calculate_distances(from)
     res = []
 
+    # current position, distance travelled, crossed doors
+    initial_state = [from, 0, {}]
+
     queue = []
-    queue.push([from, 0, {}]) # current position, distance travelled, crossed doors
+    queue.push(initial_state)
 
     visited = {}
+    visited[from] = true
 
     until queue.empty?
-      pos, dist, doors = queue.pop
-
-      next if visited[pos]
-      visited[pos] = true
+      pos, dist, doors = queue.shift
 
       res << [pos, dist, doors] if is_key?(pos)
 
       neighbours(pos).each do |neighbour|
+        next if visited[neighbour]
+        visited[neighbour] = true
+
         next if is_wall?(neighbour)
 
         next_doors = doors.merge(is_door?(neighbour) ? { cell_at(neighbour) => true } : {})
