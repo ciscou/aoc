@@ -21,34 +21,68 @@ class Parser
 
     @version_sum += version
 
-    case type
-    when 4
+    if type == 4
       done = false
+      value = 0
+
       until done
         group = shift(5)
         h, n = group.divmod(16)
 
+        value *= 16
+        value += n
+
         done = true if h == 0
       end
+
+      LiteralPacket.new(value)
     else
-      length_type = shift(1)
+      sub_packets = parse_sub_packets
 
-      case length_type
+      case type
       when 0
-        sub_packets_length = shift(15)
-        offset_was = @offset
-
-        until @offset >= offset_was + sub_packets_length
-          parse_packet
-        end
+        SumPacket.new(sub_packets)
       when 1
-        sub_packets_count = shift(11)
-        sub_packets_count.times do
-          parse_packet
-        end
+        ProductPacket.new(sub_packets)
+      when 2
+        MinimumPacket.new(sub_packets)
+      when 3
+        MaximumPacket.new(sub_packets)
+      when 5
+        GreaterThanPacket.new(sub_packets)
+      when 6
+        LessThanPacket.new(sub_packets)
+      when 7
+        EqualToPacket.new(sub_packets)
       else
-        raise "Invalid length_type #{length_type} at offset #{@offset - 1}"
+        raise "Invalid type #{type} at offset #{@offset}"
       end
+    end
+  end
+
+  def parse_sub_packets
+    length_type = shift(1)
+
+    case length_type
+    when 0
+      sub_packets_length = shift(15)
+      offset_was = @offset
+
+      res = []
+
+      until @offset >= offset_was + sub_packets_length
+        res << parse_packet
+      end
+
+      res
+    when 1
+      sub_packets_count = shift(11)
+
+      sub_packets_count.times.map do
+        parse_packet
+      end
+    else
+      raise "Invalid length_type #{length_type} at offset #{@offset}"
     end
   end
 
@@ -60,6 +94,54 @@ class Parser
   end
 end
 
+LiteralPacket = Struct.new(:value)
+
+SumPacket = Struct.new(:sub_packets) do
+  def value
+    sub_packets.map(&:value).sum
+  end
+end
+
+ProductPacket = Struct.new(:sub_packets) do
+  def value
+    sub_packets.map(&:value).inject(:*)
+  end
+end
+
+MinimumPacket = Struct.new(:sub_packets) do
+  def value
+    sub_packets.map(&:value).min
+  end
+end
+
+MaximumPacket = Struct.new(:sub_packets) do
+  def value
+    sub_packets.map(&:value).max
+  end
+end
+
+GreaterThanPacket = Struct.new(:sub_packets) do
+  def value
+    a, b = sub_packets.map(&:value)
+    a > b ? 1 : 0
+  end
+end
+
+LessThanPacket = Struct.new(:sub_packets) do
+  def value
+    a, b = sub_packets.map(&:value)
+    a < b ? 1 : 0
+  end
+end
+
+EqualToPacket = Struct.new(:sub_packets) do
+  def value
+    a, b = sub_packets.map(&:value)
+    a == b ? 1 : 0
+  end
+end
+
 parser = Parser.new(INPUT.first)
-parser.parse
+packet = parser.parse
 puts parser.version_sum
+puts packet.value
