@@ -94,11 +94,28 @@ class Parser
   end
 end
 
-LiteralPacket = Struct.new(:value)
+LiteralPacket = Struct.new(:value) do
+  def print(indent = 0)
+    puts ("  " * indent) + value.to_s
+  end
+
+  def to_s
+    value.to_s
+  end
+end
 
 SumPacket = Struct.new(:sub_packets) do
   def value
     sub_packets.map(&:value).sum
+  end
+
+  def print(indent = 0)
+    puts ("  " * indent) + "+"
+    sub_packets.each { |sp| sp.print(indent + 1) }
+  end
+
+  def to_s
+    "(#{sub_packets.map(&:to_s).join(" + ")})"
   end
 end
 
@@ -106,17 +123,44 @@ ProductPacket = Struct.new(:sub_packets) do
   def value
     sub_packets.map(&:value).inject(:*)
   end
+
+  def print(indent = 0)
+    puts ("  " * indent) + "*"
+    sub_packets.each { |sp| sp.print(indent + 1) }
+  end
+
+  def to_s
+    "(#{sub_packets.map(&:to_s).join(" * ")})"
+  end
 end
 
 MinimumPacket = Struct.new(:sub_packets) do
   def value
     sub_packets.map(&:value).min
   end
+
+  def print(indent = 0)
+    puts ("  " * indent) + "min"
+    sub_packets.each { |sp| sp.print(indent + 1) }
+  end
+
+  def to_s
+    "[#{sub_packets.map(&:to_s).join(", ")}].min"
+  end
 end
 
 MaximumPacket = Struct.new(:sub_packets) do
   def value
     sub_packets.map(&:value).max
+  end
+
+  def print(indent = 0)
+    puts ("  " * indent) + "max"
+    sub_packets.each { |sp| sp.print(indent + 1) }
+  end
+
+  def to_s
+    "[#{sub_packets.map(&:to_s).join(", ")}].max"
   end
 end
 
@@ -125,12 +169,32 @@ GreaterThanPacket = Struct.new(:sub_packets) do
     a, b = sub_packets.map(&:value)
     a > b ? 1 : 0
   end
+
+  def print(indent = 0)
+    puts ("  " * indent) + ">"
+    sub_packets.each { |sp| sp.print(indent + 1) }
+  end
+
+  def to_s
+    a, b = sub_packets
+    "(#{a} > #{b} ? 1 : 0)"
+  end
 end
 
 LessThanPacket = Struct.new(:sub_packets) do
   def value
     a, b = sub_packets.map(&:value)
     a < b ? 1 : 0
+  end
+
+  def print(indent = 0)
+    puts ("  " * indent) + "<"
+    sub_packets.each { |sp| sp.print(indent + 1) }
+  end
+
+  def to_s
+    a, b = sub_packets
+    "(#{a} < #{b} ? 1 : 0)"
   end
 end
 
@@ -139,9 +203,20 @@ EqualToPacket = Struct.new(:sub_packets) do
     a, b = sub_packets.map(&:value)
     a == b ? 1 : 0
   end
+
+  def print(indent = 0)
+    puts ("  " * indent) + "=="
+    sub_packets.each { |sp| sp.print(indent + 1) }
+  end
+
+  def to_s
+    a, b = sub_packets
+    "(#{a} == #{b} ? 1 : 0)"
+  end
 end
 
 parser = Parser.new(INPUT.first)
 packet = parser.parse
 puts parser.version_sum
 puts packet.value
+puts packet
