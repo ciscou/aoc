@@ -55,15 +55,37 @@ class PriorityQueue
   end
 end
 
+class Cache
+  def initialize
+    @hits = 0
+    @misses = 0
+    @entries = {}
+  end
+
+  attr_reader :hits, :misses
+
+  def get_or_put(key, &block)
+    if @entries.key?(key)
+      @hits += 1
+      @entries[key]
+    else
+      @misses += 1
+      @entries[key] = block.call
+    end
+  end
+end
+
 class Maze
   def initialize
-    @robots = []
     @cells = INPUT.map(&:chars)
+    @height = @cells.length
+    @width = @cells.map(&:length).max
 
+    @robots = []
     @available_keys = {}
 
-    @cells.length.times do |row|
-      @cells.first.length.times do |col|
+    @height.times do |row|
+      @width.times do |col|
         pos = [row, col]
 
         @available_keys[cell_at(pos)] = pos if is_key?(pos)
@@ -73,8 +95,8 @@ class Maze
   end
 
   def set_state!(state)
-    @cells.length.times do |row|
-      @cells[row].length.times do |col|
+    @height.times do |row|
+      @width.times do |col|
         @cells[row][col] = "." if @cells[row][col] == "@"
       end
     end
@@ -86,9 +108,9 @@ class Maze
 
       @cells[row][col] = "."
 
-      @cells.length.times do |row|
-        @cells[row].length.times do |col|
-          @cells[row][col] = "." if @cells[row][col] == key.upcase
+      @height.times do |row|
+        @width.times do |col|
+          @cells[row][col] = "." if @cells[row][col] == door_for(key)
         end
       end
     end
@@ -99,8 +121,8 @@ class Maze
   end
 
   def draw
-    @cells.length.times do |row|
-      line = @cells[row].length.times.map { |col| cell_at([row, col]) }
+    @height.times do |row|
+      line = @width.times.map { |col| cell_at(row, col) }
       puts line.join("")
     end
   end
@@ -126,8 +148,8 @@ class Maze
     end
   end
 
-  def cell_at(pos)
-    row, col = pos
+  def cell_at(pos_or_row, col = nil)
+    row, col = col.nil? ? pos_or_row : [pos_or_row, col]
 
     @cells[row][col]
   end
@@ -170,158 +192,98 @@ class Maze
     end
   end
 
-  def print_all_paths
-    @calculated_paths.each do |from, v1|
-      v1.each do |to, path|
-        print "Path from #{cell_at(from)} to #{cell_at(to)}: "
-        puts cells_at(path.select { |pos| is_robot?(pos) || is_key?(pos) || is_door?(pos) }).join("")
-      end
-    end
-  end
+  def solve
+    @key_distances_cache = Cache.new
 
-  def calculated_paths(from, keys)
-    @calculated_paths ||= {}
-
-    unless @calculated_paths.key?(from)
-      @calculated_paths[from] = {}
-      calculate_all_paths!(from, keys)
-    end
-
-    @calculated_paths[from].values
-  end
-
-  def find_min_path_to_all_keys
-    # Dijkstra
-
-    distances = Hash.new(999_999_999_999)
-    parents = {}
-    visited = {}
-
-    initial_state = [robots_count.times.map { |i| robot_position(i) }, {}]
-
-    distances[initial_state] = 0
+    # current positions, distance travelled, collected keys
+    initial_state = [robots_count.times.map { |i| robot_position(i) }, 0, {}]
 
     pq = PriorityQueue.new
-    pq.push(state: initial_state, priority: 0)
+    pq.push(
+      state: initial_state,
+      priority: 0
+    )
+
+    visited = {}
 
     loop do
       node = pq.pop
-
-      break unless node
+      break if node.nil?
 
       state = node[:state]
+      positions, dist, collected_keys = state
 
-      visited[state] = true
+      return dist if (available_keys - collected_keys.keys).empty?
 
-      robots, keys = node[:state]
+      next if visited[[positions, collected_keys]]
+      visited[[positions, collected_keys]] = true
 
-      return [node, distances, parents] if keys.size == available_keys.size
+      positions.each.with_index do |pos, i|
+        calculate_distances(pos).each do |candidate_key|
+          key_pos, key_dist, crossed_doors = candidate_key
+          key = cell_at(key_pos)
 
-      $nodes_count += 1
+          next if collected_keys[key]
+          next unless crossed_doors.keys.all? { |door| collected_keys[key_for(door)] }
 
-      robots_count.times do |index|
-        pos = robots[index]
+          next_positions = positions.dup
+          next_positions[i] = key_pos
 
-        calculated_paths(pos, keys).each do |path|
-          next if keys[cell_at(path.last)]
-
-          next_keys = keys.dup
-
-          path.each do |pos|
-            next_keys[cell_at(pos)] = true if is_key?(pos)
-          end
-
-          next if closed_doors(path, next_keys).any?
-
-          next_row, next_col = path.last
-
-          next_robots = robots.dup
-          next_robots[index] = [next_row, next_col]
-
-          next_state = [next_robots, next_keys]
-
-          next if visited[next_state]
-
-          if distances[next_state] > distances[state] + path.length - 1
-            distances[next_state] = distances[state] + path.length - 1
-            parents[next_state] = state
-
-            pq.push(state: next_state, priority: -distances[next_state])
-          end
+          pq.push(
+            state: [next_positions, dist + key_dist, collected_keys.merge(key => true)],
+            priority: -(dist + key_dist)
+          )
         end
       end
     end
 
-    nil
+    Float::INFINITY
   end
 
   private
 
-  def closed_doors(path, keys = {})
-    doors = []
-
-    path.each do |pos|
-      keys[cell_at(pos)] = true if is_key?(pos)
-      doors << pos if is_door?(pos) && !keys[key_for(cell_at(pos))]
-    end
-
-    doors
+  def calculate_distances(from)
+    @key_distances_cache.get_or_put([from]) { do_calculate_distances(from) }
   end
 
-  def calculate_all_paths!(start, keys)
-    do_calculate_all_paths!(start, start, [start], keys, start => true)
-  end
+  def do_calculate_distances(from)
+    res = []
 
-  def do_calculate_all_paths!(start, from, path, keys, visited)
-    # DFS w/o early returns so that we exhaust all possibilities
-    # Well, actually we early return to discard redundant paths
+    # current position, distance travelled, crossed doors
+    initial_state = [from, 0, {}]
 
-    if path.length > 1 && is_key?(from)
-      # TODO this optimization fails if a key position needs to be visited again
-      # as an intermediate step to get another key. It works for part1 and part2
-      # but breaks for some examples
-      return if keys[cell_at(from)]
+    queue = []
+    queue.push(initial_state)
 
-      doors = closed_doors(path)
-      add_this_path = false
-
-      other_path = @calculated_paths[start][from]
-      if other_path
-        other_doors = closed_doors(other_path)
-
-        add_this_path = true if path.length < other_path.length
-        add_this_path = true if (doors - other_doors).empty? && (other_doors - doors).any?
-      else
-        add_this_path = true
-      end
-
-      if add_this_path
-        @calculated_paths[start][from] = path.dup
-      else
-        "ignoring path"
-      end
-    end
-
-    $coordinates_count += 1
-
+    visited = {}
     visited[from] = true
 
-    neighbours(from).each do |neighbour|
-      next if visited[neighbour]
-      next if is_wall?(neighbour)
+    until queue.empty?
+      pos, dist, doors = queue.shift
 
-      path.push(neighbour)
+      res << [pos, dist, doors] if is_key?(pos)
 
-      do_calculate_all_paths!(start, neighbour, path, keys, visited)
+      neighbours(pos).each do |neighbour|
+        next if visited[neighbour]
+        visited[neighbour] = true
 
-      path.pop
+        next if is_wall?(neighbour)
+
+        next_doors = doors.merge(is_door?(neighbour) ? { cell_at(neighbour) => true } : {})
+
+        queue << [neighbour, dist + 1, next_doors]
+      end
     end
 
-    visited[from] = false
+    res
   end
 
   def key_for(door)
     door.downcase
+  end
+
+  def door_for(key)
+    key.upcase
   end
 
   def is_key?(pos)
@@ -346,67 +308,19 @@ class Maze
 end
 
 def solve(four_robots)
-  $coordinates_count = 0
-  $nodes_count = 0
-
   maze = Maze.new
 
   maze.four_robots! if four_robots
 
-  print "calculating solution... "
   start = Time.now
-  solution = maze.find_min_path_to_all_keys
+  solution = maze.solve
   puts "done in #{Time.now - start} seconds"
 
-  # maze.print_all_paths
-
   unless solution
-    puts "no solution found!"
-    return
+    return "no solution found!"
   end
 
-  node, distances, parents = solution
-
-  history = []
-  state = node[:state]
-
-  while state
-    history.push(state)
-    state = parents[state]
-  end
-
-  moves, history = solution
-
-  # reconstruct(history, false)
-
-  puts "Processed #{$coordinates_count} coordinates and #{$nodes_count} nodes"
-  puts "Found solution in #{moves} moves"
-
-  [node[:priority] * -1, history.reverse]
-end
-
-def reconstruct(history, four_robots)
-  maze = Maze.new
-
-  maze.four_robots! if four_robots
-
-  last_state = nil
-  history.each do |state|
-    if last_state
-      last_robots = last_state.first
-      robots = state.first
-      moved_robot = (robots - last_robots).first
-
-      puts "Grab #{maze.cell_at(moved_robot)}"
-      $stdin.gets
-    end
-
-    last_state = state
-
-    maze.set_state!(state)
-    maze.draw
-    puts
-  end
+  "Found solution in #{solution} moves"
 end
 
 def part1
@@ -417,10 +331,5 @@ def part2
   solve(true)
 end
 
-puts "part 1"
-part1
-
-puts
-
-puts "part 2"
-part2
+puts part1
+puts part2
