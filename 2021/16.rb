@@ -21,43 +21,43 @@ class Parser
 
     @version_sum += version
 
-    if type == 4
-      done = false
-      value = 0
-
-      until done
-        group = shift(5)
-        h, n = group.divmod(16)
-
-        value *= 16
-        value += n
-
-        done = true if h == 0
-      end
-
-      LiteralPacket.new(value)
+    case type
+    when 0
+      SumPacket.new(parse_sub_packets)
+    when 1
+      ProductPacket.new(parse_sub_packets)
+    when 2
+      MinimumPacket.new(parse_sub_packets)
+    when 3
+      MaximumPacket.new(parse_sub_packets)
+    when 4
+      parse_literal_packet
+    when 5
+      GreaterThanPacket.new(parse_sub_packets)
+    when 6
+      LessThanPacket.new(parse_sub_packets)
+    when 7
+      EqualToPacket.new(parse_sub_packets)
     else
-      sub_packets = parse_sub_packets
-
-      case type
-      when 0
-        SumPacket.new(sub_packets)
-      when 1
-        ProductPacket.new(sub_packets)
-      when 2
-        MinimumPacket.new(sub_packets)
-      when 3
-        MaximumPacket.new(sub_packets)
-      when 5
-        GreaterThanPacket.new(sub_packets)
-      when 6
-        LessThanPacket.new(sub_packets)
-      when 7
-        EqualToPacket.new(sub_packets)
-      else
-        raise "Invalid type #{type} at offset #{@offset}"
-      end
+      raise "Invalid type #{type} at offset #{@offset}"
     end
+  end
+
+  def parse_literal_packet
+    done = false
+    value = 0
+
+    until done
+      group = shift(5)
+      h, n = group.divmod(16)
+
+      value *= 16
+      value += n
+
+      done = h == 0
+    end
+
+    LiteralPacket.new(value)
   end
 
   def parse_sub_packets
@@ -219,4 +219,3 @@ parser = Parser.new(INPUT.first)
 packet = parser.parse
 puts parser.version_sum
 puts packet.value
-puts packet
