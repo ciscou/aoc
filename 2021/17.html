@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AOC 2021 17</title>
+    <style type="text/css" media="all">
+      canvas {
+        width: 600;
+        height: 400;
+      }
+    </style>
+    <script charset="utf-8">
+      window.onload = function() {
+        const canvas = document.querySelector("canvas")
+        const ctx = canvas.getContext("2d")
+
+        const probe = { x: 0, y: 0, velx: 0, vely: 0 }
+        const inputTarget = { x: { min: 248, max: 285 }, y: { min: -85, max: -56 } }
+        const exampleTarget = { x: { min: 20, max: 30 }, y: { min: -10, max: -5 } }
+
+        const target = inputTarget
+
+        const update = function() {
+          if(probe.y > maxy) maxy = probe.y
+
+          probe.x += probe.velx
+          probe.y += probe.vely
+
+          probe.velx -= Math.sign(probe.velx)
+          probe.vely -= 1
+
+          if((probe.x > target.x.max) || (probe.y < target.y.min)) {
+            overshot = true
+          }
+
+          if(
+            (target.x.min <= probe.x) && (probe.x <= target.x.max) &&
+            (target.y.min <= probe.y) && (probe.y <= target.y.max)
+          ) {
+            hit = true
+          }
+
+          if(hit) console.log("maxy", maxy)
+        }
+
+        const draw = function() {
+          ctx.fillStyle = "white"
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+          ctx.save()
+          ctx.translate(40, 300)
+          ctx.scale(0.85, 0.85)
+
+          ctx.fillStyle = "blue"
+          if(hit) ctx.fillStyle = "green"
+          if(overshot) ctx.fillStyle = "red"
+          ctx.beginPath()
+          ctx.rect(target.x.min, -target.y.min, target.x.max - target.x.min + 1, -(target.y.max - target.y.min + 1))
+          ctx.fill()
+
+          ctx.fillStyle = "brown"
+          if(hit) ctx.fillStyle = "green"
+          if(overshot) ctx.fillStyle = "red"
+          ctx.beginPath()
+          ctx.arc(probe.x, -probe.y, 10, 0, 2 * Math.PI)
+          ctx.fill()
+
+          ctx.restore()
+        }
+
+        let overshot = false
+        let hit = false
+        let maxy = Number.NEGATIVE_INFINITY
+
+        const loop = function() {
+          update()
+          draw()
+
+          if(!overshot && !hit) {
+            afrId = requestAnimationFrame(loop)
+          }
+        }
+
+        let afrId = undefined
+        draw()
+
+        const form = document.querySelector("form")
+        const velxInput = document.getElementById("velx")
+        const velyInput = document.getElementById("vely")
+
+        form.addEventListener("submit", function(e) {
+          e.preventDefault()
+
+          probe.x = 0
+          probe.y = 0
+          probe.velx = parseInt(velx.value)
+          probe.vely = parseInt(vely.value)
+
+          maxy = Number.NEGATIVE_INFINITY
+          overshot = false
+          hit = false
+
+          if(afrId) cancelAnimationFrame(afrId)
+          afrId = requestAnimationFrame(loop)
+        })
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    <form>
+      <input type="number" name="velx" id="velx" value="23" />
+      <input type="number" name="vely" id="vely" value="84" />
+      <input type="submit" value="Simulate!">
+    </form>
+  </body>
+</html>
