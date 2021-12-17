@@ -89,6 +89,31 @@
         const velxInput = document.getElementById("velx")
         const velyInput = document.getElementById("vely")
 
+        // velx from 22 to 285
+        // vely from -85 to 84
+
+        let part2 = 0
+
+        for(let velx = 22; velx <= 285; velx++) {
+          for(let vely = -85; vely <= 84; vely++) {
+            probe.x = 0
+            probe.y = 0
+            probe.velx = velx
+            probe.vely = vely
+
+            overshot = false
+            hit = false
+
+            while(!overshot && !hit) {
+              update()
+            }
+
+            if(hit) part2++
+          }
+        }
+
+        console.log("part2", part2)
+
         form.addEventListener("submit", function(e) {
           e.preventDefault()
 
@@ -110,8 +135,8 @@
   <body>
     <canvas id="canvas" width="600" height="400"></canvas>
     <form>
-      <input type="number" name="velx" id="velx" value="23" />
-      <input type="number" name="vely" id="vely" value="84" />
+      <input type="number" name="velx" id="velx" value="0" />
+      <input type="number" name="vely" id="vely" value="0" />
       <input type="submit" value="Simulate!">
     </form>
   </body>
