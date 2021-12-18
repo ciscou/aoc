@@ -63,14 +63,16 @@ class SnailfishNumber
 
     if depth > 3
       if @left.type == :number && @right.type == :number
-        # ignoring_bubbles_down do
-          bubble_up_left(@left.number)
-          bubble_up_right(@right.number)
-        # end
+        root = @parent
+        root = root.parent until root.parent.nil?
+        prev = root.find_prev_of(@left)
+        nxt = root.find_next_of(@right)
 
-        # TODO add @left.number to the most-right node of parent.left
-        # TODO add @right.number to the most-left node of parent.right
-        # dyn programming?
+        # puts "I am #{self}, left is #{@left}, right is #{@right}"
+        # puts "I am #{self}, prev is #{prev}, next is #{nxt}"
+        # $stdin.gets
+        prev.increase_number(@left.number) if prev
+        nxt.increase_number(@right.number) if nxt
 
         @type = :number
         @number = 0
@@ -106,59 +108,59 @@ class SnailfishNumber
   end
 
   def bubble_up_left(n)
-    parent = @parent
-    parent = parent.parent until parent.nil? || (parent.left && parent.left != self)
+    root = @parent
+    root = root.parent until root.parent.nil?
+    prev = root.find_prev_of(left)
 
-    return if parent.nil?
+    puts "root is #{root}, prev of #{left} is #{prev}"
 
-    ignoring_bubbles_down do
-      puts "I am #{parent}, my left child is #{parent.left}, bubbling down right #{n}"
-      parent.left.ignoring_bubbles_down { parent.left.bubble_down_right(n) }
-    end
+    prev.increase_number(n) unless prev.nil?
   end
 
   def bubble_up_right(n)
-    parent = @parent
-    parent = parent.parent until parent.nil? || (parent.right && parent.right != self)
+    root = @parent
+    root = root.parent until root.parent.nil?
+    nxt = root.find_next_of(right)
 
-    return if parent.nil?
+    puts "root is #{root}, next of #{right} is #{nxt}"
 
-    ignoring_bubbles_down do
-      puts "I am #{parent}, mi right child is #{parent.right}, bubbling down left #{n}"
-      parent.right.ignoring_bubbles_down { parent.right.bubble_down_left(n) }
-    end
+    nxt.increase_number(n) unless nxt.nil?
   end
 
-  def bubble_down_left(n)
-    return if @ignore_bubbles_down
+  def increase_number(n)
+    @number += n
+  end
 
-    if @type == :number
-      puts "bubbling down left, adding #{n} to #{@number}"
-      @number += n
-      true
+  def find_prev_of(node)
+    last = nil
+
+    dfs.each do |n|
+      # puts n
+      return last if n.object_id == node.object_id
+      last = n if n.type == :number
+    end
+
+    nil
+  end
+
+  def find_next_of(node)
+    found = false
+
+    dfs.each do |n|
+      # puts n
+      return n if found && n.type == :number
+      found ||= n.object_id == node.object_id
+    end
+
+    nil
+  end
+
+  def dfs
+    if type == :number
+      [self]
     else
-      @left.bubble_down_left(n) || @right.bubble_down_left(n)
+      @left.dfs + [self] + @right.dfs
     end
-  end
-
-  def bubble_down_right(n)
-    return if @ignore_bubbles_down
-
-    if @type == :number
-      puts "bubbling down right, adding #{n} to #{@number}"
-      @number += n
-      true
-    else
-      @right.bubble_down_right(n) || @left.bubble_down_right(n)
-    end
-  end
-
-  def ignoring_bubbles_down
-    ignore_bubbles_down_was = @ignore_bubbles_down
-    @ignore_bubbles_down = true
-    res = yield
-    @ignore_bubbles_down = ignore_bubbles_down_was
-    res
   end
 end
 
@@ -230,7 +232,7 @@ end
   sum_pairs = list_of_pairs.map { |pairs| SnailfishNumber.new(pairs) }.reduce(:+).pairs
   puts sum_pairs.inspect
   puts expected_sum_pairs.inspect
-  puts "uh oh... expected #{expected_sum_pairs.inspect}, got #{sum_pairs.inspect}" unless sum_pairs == expected_sum_pairs
+  raise "uh oh... expected #{expected_sum_pairs.inspect}, got #{sum_pairs.inspect}" unless sum_pairs == expected_sum_pairs
 end
 
 pairs = INPUT.map do |line|
@@ -238,5 +240,15 @@ pairs = INPUT.map do |line|
 end
 
 sum = pairs.reduce(:+)
-puts sum
 puts sum.magnitude
+
+max = -Float::INFINITY
+
+pairs.combination(2).each do |p1, p2|
+  mag = (p1 + p2).magnitude
+  max = mag if mag > max
+  mag = (p2 + p1).magnitude
+  max = mag if mag > max
+end
+
+puts max
