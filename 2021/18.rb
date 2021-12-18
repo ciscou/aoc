@@ -5,6 +5,7 @@ INPUT = File.read(ARGV.first || __FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 class SnailfishNumber
   def initialize(number_or_pair, parent = nil)
     @parent = parent
+    @ignore_bubbles_down = false
 
     if number_or_pair.is_a?(Numeric)
       @type = :number
@@ -14,14 +15,6 @@ class SnailfishNumber
       @left, @right = number_or_pair
       @left = SnailfishNumber.new(@left, self)
       @right = SnailfishNumber.new(@right, self)
-    end
-  end
-
-  def anyone_ignoring?
-    if @type == :number
-      !!(@ignore_bubbles_down)
-    else
-      !!(@ignore_bubbles_down || @left.anyone_ignoring? || @right.anyone_ignoring?)
     end
   end
 
@@ -41,34 +34,17 @@ class SnailfishNumber
     end
   end
 
-  attr_reader :type, :number, :left, :right
+  attr_reader :type, :number, :parent, :left, :right
 
   def +(other)
-    kk = SnailfishNumber.new([pairs, other.pairs])
-    # puts "after addition: #{kk}"
-    res = kk.reduce
-    # puts self
-    # puts other
-    # puts res
-    # $stdin.gets
-    res
+    SnailfishNumber.new([pairs, other.pairs]).reduce
   end
 
   def reduce
     done = false
 
     until done
-      exploded = explode
-      if exploded
-        # puts "after explode:  #{self}"
-      else
-        splitted = split
-        if splitted
-          # puts "after split:    #{self}"
-        else
-          done = true
-        end
-      end
+      done = !explode && !split
     end
 
     self
@@ -85,14 +61,16 @@ class SnailfishNumber
   def explode(depth = 0)
     return false if @type == :number
 
-    # puts "exploding at depth #{depth}"
-
     if depth > 3
       if @left.type == :number && @right.type == :number
-        ignoring_bubbles_down do
+        # ignoring_bubbles_down do
           bubble_up_left(@left.number)
           bubble_up_right(@right.number)
-        end
+        # end
+
+        # TODO add @left.number to the most-right node of parent.left
+        # TODO add @right.number to the most-left node of parent.right
+        # dyn programming?
 
         @type = :number
         @number = 0
@@ -102,7 +80,7 @@ class SnailfishNumber
 
         true
       else
-        false
+        raise "there are pairs with depth > 0"
       end
     else
       @left.explode(depth + 1) || @right.explode(depth + 1)
@@ -122,65 +100,58 @@ class SnailfishNumber
       true
     elsif type == :pair
       @left.split || @right.split
+    else
+      false
     end
   end
 
   def bubble_up_left(n)
-    return false if @parent.nil?
+    parent = @parent
+    parent = parent.parent until parent.nil? || (parent.left && parent.left != self)
 
-    # puts "bubble up left #{n}"
+    return if parent.nil?
 
     ignoring_bubbles_down do
-      @parent.bubble_down_left(n) || @parent.bubble_up_left(n)
+      puts "I am #{parent}, my left child is #{parent.left}, bubbling down right #{n}"
+      parent.left.ignoring_bubbles_down { parent.left.bubble_down_right(n) }
     end
   end
 
   def bubble_up_right(n)
-    return false if @parent.nil?
+    parent = @parent
+    parent = parent.parent until parent.nil? || (parent.right && parent.right != self)
 
-    if n == 7
-      # puts self
-      # puts @parent
-      # puts "bubble up right #{n}"
-      # $stdin.gets
-    end
+    return if parent.nil?
 
     ignoring_bubbles_down do
-      @parent.bubble_down_right(n) || @parent.bubble_up_right(n)
+      puts "I am #{parent}, mi right child is #{parent.right}, bubbling down left #{n}"
+      parent.right.ignoring_bubbles_down { parent.right.bubble_down_left(n) }
     end
   end
 
   def bubble_down_left(n)
-    return false if @ignore_bubbles_down
+    return if @ignore_bubbles_down
 
     if @type == :number
-      if n == 7
-        # puts "bubble down left: adding #{n} to #{@number}"
-      end
+      puts "bubbling down left, adding #{n} to #{@number}"
       @number += n
       true
     else
-      @left.bubble_down_right(n) || @left.bubble_down_left(n)
-      # @right.bubble_down_left(n) || @right.bubble_down_right(n)
+      @left.bubble_down_left(n) || @right.bubble_down_left(n)
     end
   end
 
   def bubble_down_right(n)
-    return false if @ignore_bubbles_down
+    return if @ignore_bubbles_down
 
     if @type == :number
-      if n == 7
-        # puts "bubble down right: adding #{n} to #{@number}"
-      end
+      puts "bubbling down right, adding #{n} to #{@number}"
       @number += n
       true
     else
-      @right.bubble_down_left(n) || @right.bubble_down_right(n)
-      # @left.bubble_down_right(n) || @left.bubble_down_left(n)
+      @right.bubble_down_right(n) || @left.bubble_down_right(n)
     end
   end
-
-  private
 
   def ignoring_bubbles_down
     ignore_bubbles_down_was = @ignore_bubbles_down
@@ -255,19 +226,12 @@ end
     [7,[[[3,7],[4,3]],[[6,3],[8,8]]]],
   ] => [[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]],
 }.each do |list_of_pairs, expected_sum_pairs|
+  # TODO
   sum_pairs = list_of_pairs.map { |pairs| SnailfishNumber.new(pairs) }.reduce(:+).pairs
   puts sum_pairs.inspect
   puts expected_sum_pairs.inspect
-  raise "uh oh... expected #{expected_sum_pairs.inspect}, got #{sum_pairs.inspect}" unless sum_pairs == expected_sum_pairs
+  puts "uh oh... expected #{expected_sum_pairs.inspect}, got #{sum_pairs.inspect}" unless sum_pairs == expected_sum_pairs
 end
-
-# n = SnailfishNumber.new([[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]])
-# puts n
-# puts n.anyone_ignoring?
-# puts n.explode
-# puts n.anyone_ignoring?
-# puts n
-# exit(0)
 
 pairs = INPUT.map do |line|
   SnailfishNumber.new(JSON.parse(line))
