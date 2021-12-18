@@ -45,8 +45,13 @@ class SnailfishNumber
 
   def +(other)
     kk = SnailfishNumber.new([pairs, other.pairs])
-    puts "after addition: #{kk}"
-    kk.reduce
+    # puts "after addition: #{kk}"
+    res = kk.reduce
+    # puts self
+    # puts other
+    # puts res
+    # $stdin.gets
+    res
   end
 
   def reduce
@@ -55,11 +60,11 @@ class SnailfishNumber
     until done
       exploded = explode
       if exploded
-        puts "after explode:  #{self}"
+        # puts "after explode:  #{self}"
       else
         splitted = split
         if splitted
-          puts "after split:    #{self}"
+          # puts "after split:    #{self}"
         else
           done = true
         end
@@ -186,38 +191,75 @@ class SnailfishNumber
   end
 end
 
-# [
-#   [[1,2],[[3,4],5]],
-#   [[[[0,7],4],[[7,8],[6,0]]],[8,1]],
-#   [[[[1,1],[2,2]],[3,3]],[4,4]],
-#   [[[[3,0],[5,3]],[4,4]],[5,5]],
-#   [[[[5,0],[7,4]],[5,5]],[6,6]],
-#   [[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]],
-# ].each do |pairs|
-#   puts SnailfishNumber.new(pairs).magnitude
-# end
-# exit(0)
+{
+  [[1,2],[[3,4],5]] => 143,
+  [[[[0,7],4],[[7,8],[6,0]]],[8,1]] => 1384,
+  [[[[1,1],[2,2]],[3,3]],[4,4]] => 445,
+  [[[[3,0],[5,3]],[4,4]],[5,5]] => 791,
+  [[[[5,0],[7,4]],[5,5]],[6,6]] => 1137,
+  [[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]] => 3488,
+}.each do |pairs, expected_magnitude|
+  magnitude = SnailfishNumber.new(pairs).magnitude
+  raise "uh oh... expected #{expected_magnitude.inspect}, got #{magnitude.inspect}" unless magnitude == expected_magnitude
+end
 
-# [
-#   [[[[[9,8],1],2],3],4],
-#   [7,[6,[5,[4,[3,2]]]]],
-#   [[6,[5,[4,[3,2]]]],1],
-#   [[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]],
-#   [[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]],
-# ].each do |pairs|
-#   n = SnailfishNumber.new(pairs)
-#   puts n.explode
-#   puts n
-# end
-# exit(0)
+{
+  [[[[[9,8],1],2],3],4] => [[[[0,9],2],3],4],
+  [7,[6,[5,[4,[3,2]]]]] => [7,[6,[5,[7,0]]]],
+  [[6,[5,[4,[3,2]]]],1] => [[6,[5,[7,0]]],3],
+  [[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]] => [[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]],
+  [[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]] => [[3,[2,[8,0]]],[9,[5,[7,0]]]],
+}.each do |pairs, expected_pairs_after_explosion|
+  n = SnailfishNumber.new(pairs)
+  n.explode
+  pairs_after_explosion = n.pairs
+  raise "uh oh... expected #{expected_pairs_after_explosion}, got #{pairs_after_explosion}" unless pairs_after_explosion == expected_pairs_after_explosion
+end
 
-# n1 = SnailfishNumber.new([[[[4,3],4],4],[7,[[8,4],9]]])
-# n2 = SnailfishNumber.new([1,1])
-# sum = n1 + n2
-# puts n1.anyone_ignoring?
-# puts n2.anyone_ignoring?
-# puts sum.anyone_ignoring?
-# exit(0)
+{
+  [
+    [[[[4,3],4],4],[7,[[8,4],9]]],
+    [1,1],
+  ] => [[[[0,7],4],[[7,8],[6,0]]],[8,1]],
+  [
+    [1,1],
+    [2,2],
+    [3,3],
+    [4,4],
+  ] => [[[[1,1],[2,2]],[3,3]],[4,4]],
+  [
+    [1,1],
+    [2,2],
+    [3,3],
+    [4,4],
+    [5,5],
+  ] => [[[[3,0],[5,3]],[4,4]],[5,5]],
+  [
+    [1,1],
+    [2,2],
+    [3,3],
+    [4,4],
+    [5,5],
+    [6,6],
+  ] => [[[[5,0],[7,4]],[5,5]],[6,6]],
+}.each do |list_of_pairs, expected_sum_pairs|
+  sum_pairs = list_of_pairs.map { |pairs| SnailfishNumber.new(pairs) }.reduce(:+).pairs
+  raise "uh oh... expected #{expected_sum_pairs.inspect}, got #{sum_pairs.inspect}" unless sum_pairs == expected_sum_pairs
+end
+
+# slightly larger example
+
+{
+  [
+    [[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]],
+    [7,[[[3,7],[4,3]],[[6,3],[8,8]]]],
+  ] => [[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]],
+}.each do |list_of_pairs, expected_sum_pairs|
+  sum_pairs = list_of_pairs.map { |pairs| SnailfishNumber.new(pairs) }.reduce(:+).pairs
+  puts sum_pairs.inspect
+  puts expected_sum_pairs.inspect
+  raise "uh oh... expected #{expected_sum_pairs.inspect}, got #{sum_pairs.inspect}" unless sum_pairs == expected_sum_pairs
+end
 
 # n = SnailfishNumber.new([[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]])
 # puts n
