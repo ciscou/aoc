@@ -22,6 +22,8 @@
         const target = inputTarget
 
         const update = function() {
+          console.log(probe)
+
           probe.x += probe.velx
           probe.y += probe.vely
 
@@ -87,30 +89,30 @@
         // velx from 22 to 285
         // vely from -85 to 84
 
-        let part1 = Number.NEGATIVE_INFINITY
-        let part2 = 0
+        //let part1 = Number.NEGATIVE_INFINITY
+        //let part2 = 0
 
-        for(let velx = 22; velx <= 285; velx++) {
-          for(let vely = -85; vely <= 84; vely++) {
-            probe.x = 0
-            probe.y = 0
-            probe.velx = velx
-            probe.vely = vely
+        //for(let velx = 22; velx <= 285; velx++) {
+        //  for(let vely = -85; vely <= 84; vely++) {
+        //    probe.x = 0
+        //    probe.y = 0
+        //    probe.velx = velx
+        //    probe.vely = vely
 
-            overshot = false
-            hit = false
+        //    overshot = false
+        //    hit = false
 
-            while(!overshot && !hit) {
-              if(probe.y > part1) part1 = probe.y
-              update()
-            }
+        //    while(!overshot && !hit) {
+        //      if(probe.y > part1) part1 = probe.y
+        //      update()
+        //    }
 
-            if(hit) part2++
-          }
-        }
+        //    if(hit) part2++
+        //  }
+        //}
 
-        console.log("part1", part1)
-        console.log("part2", part2)
+        //console.log("part1", part1)
+        //console.log("part2", part2)
 
         form.addEventListener("submit", function(e) {
           e.preventDefault()
