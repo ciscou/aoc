@@ -154,11 +154,41 @@ def apply_transforms(transforms, pos)
   pos
 end
 
+def inv_rotation(rotation)
+  case rotation
+  when  0 then  0
+  when  1 then  7
+  when  2 then 16
+  when  3 then 23
+  when  4 then 21
+  when  5 then  5
+  when  6 then 17
+  when  7 then  1
+  when  8 then  8
+  when  9 then  9
+  when 10 then 10
+  when 11 then 11
+  when 12 then 15
+  when 13 then 13
+  when 14 then 14
+  when 15 then 12
+  when 16 then  2
+  when 17 then  6
+  when 18 then 18
+  when 19 then 22
+  when 20 then 20
+  when 21 then  4
+  when 22 then 19
+  when 23 then  3
+  else raise "Invalid rotation #{rotation.inspect}"
+  end
+end
+
 def inv_transform(transform)
   rotation, ox, oy, oz = transform
-  ox, oy, oz = apply_transform([rotation, 0, 0, 0], [-ox, -oy, -oz])
+  ox, oy, oz = apply_transforms([[rotation, 0, 0, 0]], [-ox, -oy, -oz])
 
-  [inv_rotation(rotation), -ox, -oy, -oz]
+  [inv_rotation(rotation), ox, oy, oz]
 end
 
 # puts "trying to get original of #{[498, -706, -2536].inspect}"
@@ -224,11 +254,12 @@ reports.each do |scanner_1, positions_1|
   end
 end
 
-equivalences.each do |s1, v|
-  v.each do |s2, matches|
-    # puts "#{s1} is #{s2} with #{matches.inspect}"
-  end
-end
+# equivalences.each do |s1, v|
+#   v.each do |s2, matches|
+#     puts "#{s1} is #{s2} with #{matches.inspect}"
+#   end
+# end
+# exit(0)
 
 reports[0].each do |pos|
   puts apply_transforms([], pos).inspect
@@ -247,17 +278,7 @@ reports[4].each do |pos|
 end
 
 reports[2].each do |pos|
-  equivalences_2_4 = equivalences[2][4]
-  inv_equivalences_2_4 = [equivalences_2_4[0]] + apply_transforms([[equivalences_2_4[0], 0, 0, 0]], [-equivalences_2_4[1], -equivalences_2_4[2], -equivalences_2_4[3]])
-  # puts "aki"
-  # puts [:t1, equivalences_2_4].inspect
-  # puts [:p0, pos].inspect
-  pos = apply_transforms([inv_equivalences_2_4, equivalences[1][4], equivalences[0][1]], pos)
-  # pos = apply_transforms([inv_equivalences_2_4], pos)
-  # puts [:t2, inv_equivalences_2_4].inspect
-  # puts [:p1, pos].inspect
-  # $stdin.gets
-  puts pos.inspect
+  puts apply_transforms([inv_transform(equivalences[2][4]), equivalences[1][4], equivalences[0][1]], pos).inspect
 end
 
 # puts "trying to get original of #{[498, -706, -2536].inspect}"
