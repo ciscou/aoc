@@ -129,7 +129,49 @@ def all_24_rotations(pos)
   ]
 end
 
+# 24.times do |rotation1|
+#   rotated123 = all_24_rotations([1, 2, 3])[rotation1]
+
+#   puts "#{rotation1}, #{24.times.to_a.select { |rotation2| all_24_rotations(rotated123)[rotation2] == [1, 2, 3] }}"
+# end
+# exit(0)
+
 # puts all_24_rotations([1, 2, 3]).map(&:inspect)
+# exit(0)
+
+# puts [1, 2, 3].inspect
+# puts all_24_rotations([1, 2, 3])[18].inspect
+# puts all_24_rotations(all_24_rotations([1, 2, 3])[18])[18].inspect
+# exit(0)
+
+def apply_transforms(transforms, pos)
+  transforms.each do |rotation, ox, oy, oz|
+    pos = all_24_rotations(pos)[rotation]
+    x, y, z = pos
+    pos = [x - ox, y - oy, z - oz]
+  end
+
+  pos
+end
+
+def inv_transform(transform)
+  rotation, ox, oy, oz = transform
+  ox, oy, oz = apply_transform([rotation, 0, 0, 0], [-ox, -oy, -oz])
+
+  [inv_rotation(rotation), -ox, -oy, -oz]
+end
+
+# puts "trying to get original of #{[498, -706, -2536].inspect}"
+# p0 = [-538, -627, 2608]
+# puts [:p0, p0].inspect
+# t1 = [18, -1125, 168, -72]
+# puts [:t1, t1].inspect
+# p1 = apply_transforms([t1], p0)
+# puts [:p1, p1].inspect
+# inv_t1 = [t1[0]] + apply_transforms([[t1[0], 0, 0, 0]], [-t1[1], -t1[2], -t1[3]])
+# puts [:t2, inv_t1].inspect
+# p2 = apply_transforms([inv_t1], p1)
+# puts [:p2, p2].inspect
 # exit(0)
 
 reports = Hash.new { |h, k| h[k] = [] }
@@ -184,47 +226,49 @@ end
 
 equivalences.each do |s1, v|
   v.each do |s2, matches|
-    puts "#{s1} is #{s2} with #{matches.inspect}"
+    # puts "#{s1} is #{s2} with #{matches.inspect}"
   end
 end
 
 reports[0].each do |pos|
-  puts pos.inspect
+  puts apply_transforms([], pos).inspect
 end
 
 reports[1].each do |pos|
-  rotation, ox, oy, oz = equivalences[0][1]
-  rotated_pos = all_24_rotations(pos)[rotation]
-
-  x, y, z = rotated_pos
-
-  puts [x - ox, y - oy, z - oz].inspect
+  puts apply_transforms([equivalences[0][1]], pos).inspect
 end
 
 reports[3].each do |pos|
-  rotation1, ox1, oy1, oz1 = equivalences[1][3]
-  rotated_pos1 = all_24_rotations(pos)[rotation1]
-
-  x, y, z = rotated_pos1
-
-  rotation2, ox2, oy2, oz2 = equivalences[0][1]
-  rotated_pos2 = all_24_rotations([x - ox1, y - oy1, z - oz1])[rotation2]
-
-  x, y, z = rotated_pos2
-
-  puts [x - ox2, y - oy2, z - oz2].inspect
+  puts apply_transforms([equivalences[1][3], equivalences[0][1]], pos).inspect
 end
 
 reports[4].each do |pos|
-  rotation1, ox1, oy1, oz1 = equivalences[1][4]
-  rotated_pos1 = all_24_rotations(pos)[rotation1]
-
-  x, y, z = rotated_pos1
-
-  rotation2, ox2, oy2, oz2 = equivalences[0][1]
-  rotated_pos2 = all_24_rotations([x - ox1, y - oy1, z - oz1])[rotation2]
-
-  x, y, z = rotated_pos2
-
-  puts [x - ox2, y - oy2, z - oz2].inspect
+  puts apply_transforms([equivalences[1][4], equivalences[0][1]], pos).inspect
 end
+
+reports[2].each do |pos|
+  equivalences_2_4 = equivalences[2][4]
+  inv_equivalences_2_4 = [equivalences_2_4[0]] + apply_transforms([[equivalences_2_4[0], 0, 0, 0]], [-equivalences_2_4[1], -equivalences_2_4[2], -equivalences_2_4[3]])
+  # puts "aki"
+  # puts [:t1, equivalences_2_4].inspect
+  # puts [:p0, pos].inspect
+  pos = apply_transforms([inv_equivalences_2_4, equivalences[1][4], equivalences[0][1]], pos)
+  # pos = apply_transforms([inv_equivalences_2_4], pos)
+  # puts [:t2, inv_equivalences_2_4].inspect
+  # puts [:p1, pos].inspect
+  # $stdin.gets
+  puts pos.inspect
+end
+
+# puts "trying to get original of #{[498, -706, -2536].inspect}"
+# p0 = [-538, -627, 2608]
+# puts [:p0, p0].inspect
+# t1 = [18, -1125, 168, -72]
+# puts [:t1, t1].inspect
+# p1 = apply_transforms([t1], p0)
+# puts [:p1, p1].inspect
+# inv_t1 = [t1[0]] + apply_transforms([[t1[0], 0, 0, 0]], [-t1[1], -t1[2], -t1[3]])
+# puts [:t2, inv_t1].inspect
+# p2 = apply_transforms([inv_t1], p1)
+# puts [:p2, p2].inspect
+# exit(0)
