@@ -186,9 +186,18 @@ end
 
 def inv_transform(transform)
   rotation, ox, oy, oz = transform
-  ox, oy, oz = apply_transforms([[rotation, 0, 0, 0]], [-ox, -oy, -oz])
+  ox, oy, oz = apply_transforms([[inv_rotation(rotation), 0, 0, 0]], [-ox, -oy, -oz])
 
   [inv_rotation(rotation), ox, oy, oz]
+end
+
+24.times do |rotation|
+  p0 = [rand(100), rand(100), rand(100)]
+  t1 = [rotation, rand(100), rand(100), rand(100)]
+  p1 = apply_transforms([t1], p0)
+  t2 = inv_transform(t1)
+  p2 = apply_transforms([t2], p1)
+  raise "uh oh..." unless p0 == p2
 end
 
 # puts "trying to get original of #{[498, -706, -2536].inspect}"
@@ -261,25 +270,155 @@ end
 # end
 # exit(0)
 
-reports[0].each do |pos|
-  puts apply_transforms([], pos).inspect
+normalized_reports = []
+
+if ARGV.first == "19_example.txt"
+  reports[0].each do |pos|
+    normalized_reports << apply_transforms([], pos)
+  end
+
+  reports[1].each do |pos|
+    normalized_reports << apply_transforms([equivalences[0][1]], pos)
+  end
+
+  reports[3].each do |pos|
+    normalized_reports << apply_transforms([equivalences[1][3], equivalences[0][1]], pos)
+  end
+
+  reports[4].each do |pos|
+    normalized_reports << apply_transforms([equivalences[1][4], equivalences[0][1]], pos)
+  end
+
+  reports[2].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[2][4]), equivalences[1][4], equivalences[0][1]], pos)
+  end
+else
+  reports[0].each do |pos|
+    normalized_reports << apply_transforms([], pos)
+  end
+
+  reports[1].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[2].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[3].each do |pos|
+    normalized_reports << apply_transforms([equivalences[2][3], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[4].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[4][5]), equivalences[0][5]], pos)
+  end
+
+  reports[5].each do |pos|
+    normalized_reports << apply_transforms([equivalences[0][5]], pos)
+  end
+
+  reports[6].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[7].each do |pos|
+    normalized_reports << apply_transforms([equivalences[4][7], inv_transform(equivalences[4][5]), equivalences[0][5]], pos)
+  end
+
+  reports[8].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[8][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[9].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[9][17]), equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[10].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[10][17]), equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[11].each do |pos|
+    normalized_reports << apply_transforms([equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[12].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[12][20]), inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[13].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[13][30]), equivalences[1][30], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[14].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[14][17]), equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[15].each do |pos|
+    normalized_reports << apply_transforms([equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[16].each do |pos|
+    normalized_reports << apply_transforms([equivalences[8][16], inv_transform(equivalences[8][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[17].each do |pos|
+    normalized_reports << apply_transforms([equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[18].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[18][21]), inv_transform(equivalences[21][29]), equivalences[6][29], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[19].each do |pos|
+    normalized_reports << apply_transforms([equivalences[6][19], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[20].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[21].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[21][29]), equivalences[6][29], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[22].each do |pos|
+    normalized_reports << apply_transforms([inv_transform(equivalences[22][25]), equivalences[12][25], inv_transform(equivalences[12][20]), inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[23].each do |pos|
+    normalized_reports << apply_transforms([equivalences[1][23], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[24].each do |pos|
+    normalized_reports << apply_transforms([equivalences[2][24], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[25].each do |pos|
+    normalized_reports << apply_transforms([equivalences[12][25], inv_transform(equivalences[12][20]), inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[26].each do |pos|
+    normalized_reports << apply_transforms([equivalences[0][26]], pos)
+  end
+
+  reports[27].each do |pos|
+    normalized_reports << apply_transforms([equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[28].each do |pos|
+    normalized_reports << apply_transforms([equivalences[3][28], equivalences[2][3], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[29].each do |pos|
+    normalized_reports << apply_transforms([equivalences[6][29], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
+
+  reports[30].each do |pos|
+    normalized_reports << apply_transforms([equivalences[1][30], inv_transform(equivalences[1][5]), equivalences[0][5]], pos)
+  end
 end
 
-reports[1].each do |pos|
-  puts apply_transforms([equivalences[0][1]], pos).inspect
-end
-
-reports[3].each do |pos|
-  puts apply_transforms([equivalences[1][3], equivalences[0][1]], pos).inspect
-end
-
-reports[4].each do |pos|
-  puts apply_transforms([equivalences[1][4], equivalences[0][1]], pos).inspect
-end
-
-reports[2].each do |pos|
-  puts apply_transforms([inv_transform(equivalences[2][4]), equivalences[1][4], equivalences[0][1]], pos).inspect
-end
+puts normalized_reports.map(&:inspect)
 
 # puts "trying to get original of #{[498, -706, -2536].inspect}"
 # p0 = [-538, -627, 2608]
