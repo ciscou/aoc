@@ -418,7 +418,58 @@ else
   end
 end
 
-puts normalized_reports.map(&:inspect)
+puts normalized_reports.sort.uniq.length
+
+normalized_scanners_positions = []
+
+if ARGV.first == "19_example.txt"
+  normalized_scanners_positions << apply_transforms([], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[0][1]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[1][3], equivalences[0][1]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[1][4], equivalences[0][1]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[2][4]), equivalences[1][4], equivalences[0][1]], [0, 0, 0])
+else
+  normalized_scanners_positions << apply_transforms([], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[2][3], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[4][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[4][7], inv_transform(equivalences[4][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[8][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[9][17]), equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[10][17]), equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[12][20]), inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[13][30]), equivalences[1][30], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[14][17]), equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[8][16], inv_transform(equivalences[8][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[11][17], equivalences[2][11], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[18][21]), inv_transform(equivalences[21][29]), equivalences[6][29], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[6][19], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[21][29]), equivalences[6][29], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([inv_transform(equivalences[22][25]), equivalences[12][25], inv_transform(equivalences[12][20]), inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[1][23], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[2][24], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[12][25], inv_transform(equivalences[12][20]), inv_transform(equivalences[20][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[0][26]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[3][28], equivalences[2][3], inv_transform(equivalences[2][15]), equivalences[6][15], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[6][29], inv_transform(equivalences[6][27]), equivalences[1][27], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+  normalized_scanners_positions << apply_transforms([equivalences[1][30], inv_transform(equivalences[1][5]), equivalences[0][5]], [0, 0, 0])
+end
+
+largest = normalized_scanners_positions.combination(2).map do |s1, s2|
+  x1, y1, z1 = s1
+  x2, y2, z2 = s2
+
+  (x2 - x1).abs + (y2 - y1).abs + (z2 - z1).abs
+end.max
+
+puts largest
 
 # puts "trying to get original of #{[498, -706, -2536].inspect}"
 # p0 = [-538, -627, 2608]
