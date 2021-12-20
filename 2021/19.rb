@@ -148,8 +148,9 @@ INPUT.each do |line|
   end
 end
 
+equivalences = Hash.new { |h, k| h[k] = {} }
+
 reports.each do |scanner_1, positions_1|
-  # puts scanner_1
   reports.each do |scanner_2, positions_2|
     next unless scanner_2 > scanner_1
 
@@ -177,6 +178,53 @@ reports.each do |scanner_1, positions_1|
       end
     end
 
-    puts [scanner_1, scanner_2, matches].inspect if matches
+    equivalences[scanner_1][scanner_2] = matches if matches
   end
+end
+
+equivalences.each do |s1, v|
+  v.each do |s2, matches|
+    puts "#{s1} is #{s2} with #{matches.inspect}"
+  end
+end
+
+reports[0].each do |pos|
+  puts pos.inspect
+end
+
+reports[1].each do |pos|
+  rotation, ox, oy, oz = equivalences[0][1]
+  rotated_pos = all_24_rotations(pos)[rotation]
+
+  x, y, z = rotated_pos
+
+  puts [x - ox, y - oy, z - oz].inspect
+end
+
+reports[3].each do |pos|
+  rotation1, ox1, oy1, oz1 = equivalences[1][3]
+  rotated_pos1 = all_24_rotations(pos)[rotation1]
+
+  x, y, z = rotated_pos1
+
+  rotation2, ox2, oy2, oz2 = equivalences[0][1]
+  rotated_pos2 = all_24_rotations([x - ox1, y - oy1, z - oz1])[rotation2]
+
+  x, y, z = rotated_pos2
+
+  puts [x - ox2, y - oy2, z - oz2].inspect
+end
+
+reports[4].each do |pos|
+  rotation1, ox1, oy1, oz1 = equivalences[1][4]
+  rotated_pos1 = all_24_rotations(pos)[rotation1]
+
+  x, y, z = rotated_pos1
+
+  rotation2, ox2, oy2, oz2 = equivalences[0][1]
+  rotated_pos2 = all_24_rotations([x - ox1, y - oy1, z - oz1])[rotation2]
+
+  x, y, z = rotated_pos2
+
+  puts [x - ox2, y - oy2, z - oz2].inspect
 end
