@@ -19,24 +19,32 @@ class DeterministicDie
   end
 end
 
-p1 = INPUT[0].split(": ").last.to_i - 1
-p2 = INPUT[1].split(": ").last.to_i - 1
+class PracticeGame
+  def initialize
+    @p1 = { id: 1, pos: INPUT[0].split(": ").last.to_i - 1, score: 0 }
+    @p2 = { id: 2, pos: INPUT[1].split(": ").last.to_i - 1, score: 0 }
 
-s1 = 0
-s2 = 0
+    @die = DeterministicDie.new
+  end
 
-die = DeterministicDie.new
+  def play
+    pcurr = @p1
 
-while [s1, s2].all? { |s| s < 1_000 } do
-  p1 += die.roll + die.roll + die.roll
-  p1 %= 10
-  s1 += p1 + 1
+    while [@p1, @p2].all? { |p| p[:score] < 1_000 } do
+      pcurr[:pos] += 3.times.sum { @die.roll }
+      pcurr[:pos] %= 10
 
-  next unless s1 < 1_000
+      pcurr[:score] += pcurr[:pos] + 1
 
-  p2 += die.roll + die.roll + die.roll
-  p2 %= 10
-  s2 += p2 + 1
+      pcurr = pcurr[:id] == 1 ? @p2 : @p1
+    end
+  end
+
+  def outcome
+    [@p1[:score], @p2[:score]].min * @die.rolls
+  end
 end
 
-puts [s1, s2].min * die.rolls
+practice_game = PracticeGame.new
+practice_game.play
+puts practice_game.outcome
