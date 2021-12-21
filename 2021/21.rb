@@ -48,3 +48,65 @@ end
 practice_game = PracticeGame.new
 practice_game.play
 puts practice_game.outcome
+
+class RealGame
+  def initialize
+    @p1 =  { id: 1, pos: INPUT[0].split(": ").last.to_i - 1, score: 0 }
+    @p2 =  { id: 2, pos: INPUT[1].split(": ").last.to_i - 1, score: 0 }
+  end
+
+  attr_reader :wins
+  attr_reader :wins_cache_hits, :wins_cache_misses
+
+  def play
+    @wins_cache = {}
+    @wins_cache_hits = 0
+    @wins_cache_misses = 0
+    @wins = do_play(@p1, @p2)
+  end
+
+  def do_play(p1, p2)
+    cache_key = [p1[:id], p1[:pos], p1[:score], p2[:id], p2[:pos], p2[:score]]
+    if cached_wins = @wins_cache[cache_key]
+      @wins_cache_hits += 1
+      return cached_wins
+    end
+
+    if [p1, p2].all? { |p| p[:score] < 21 }
+      wins = {}
+
+      (1..3).each do |roll1|
+        (1..3).each do |roll2|
+          (1..3).each do |roll3|
+            pcurr = { id: p1[:id], pos: p1[:pos], score: p1[:score] }
+
+            pcurr[:pos] += roll1 + roll2 + roll3
+            pcurr[:pos] %= 10
+
+            pcurr[:score] += pcurr[:pos] + 1
+
+            wins.update(do_play(p2, pcurr)) { |k, v1, v2| v1 + v2 }
+          end
+        end
+      end
+
+      @wins_cache_misses += 1
+      @wins_cache[cache_key] = wins
+
+      wins
+    else
+      winner = [p1, p2].max_by { |p| p[:score] }
+
+      @wins_cache_misses += 1
+      @wins_cache[cache_key] = { winner[:id] => 1 }
+
+      { winner[:id] => 1 }
+    end
+  end
+end
+
+real_game = RealGame.new
+real_game.play
+puts real_game.wins_cache_hits
+puts real_game.wins_cache_misses
+puts real_game.wins
