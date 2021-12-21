@@ -56,19 +56,15 @@ class RealGame
   end
 
   attr_reader :wins
-  attr_reader :wins_cache_hits, :wins_cache_misses
 
   def play
     @wins_cache = {}
-    @wins_cache_hits = 0
-    @wins_cache_misses = 0
     @wins = do_play(@p1, @p2)
   end
 
   def do_play(p1, p2)
     cache_key = [p1[:id], p1[:pos], p1[:score], p2[:id], p2[:pos], p2[:score]]
     if cached_wins = @wins_cache[cache_key]
-      @wins_cache_hits += 1
       return cached_wins
     end
 
@@ -90,23 +86,15 @@ class RealGame
         end
       end
 
-      @wins_cache_misses += 1
       @wins_cache[cache_key] = wins
-
-      wins
     else
       winner = [p1, p2].max_by { |p| p[:score] }
 
-      @wins_cache_misses += 1
       @wins_cache[cache_key] = { winner[:id] => 1 }
-
-      { winner[:id] => 1 }
     end
   end
 end
 
 real_game = RealGame.new
 real_game.play
-puts real_game.wins_cache_hits
-puts real_game.wins_cache_misses
-puts real_game.wins
+puts real_game.wins.values.max
