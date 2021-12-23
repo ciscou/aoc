@@ -48,20 +48,27 @@ reboot_steps.each do |step|
   ZS << range_z.first << range_z.last + 1
 end
 
-XS.sort!
-YS.sort!
-ZS.sort!
+XS.sort!.uniq!
+YS.sort!.uniq!
+ZS.sort!.uniq!
 
 matrix = Hash.new(false)
 
 reboot_steps.each do |step|
-  range_x, range_y, range_z = step[:ranges].map { |min, max| Range.new(min, max) }
+  range_x, range_y, range_z = step[:ranges]
   action = step[:action]
 
-  XS.each do |x1|
-    YS.each do |y1|
-      ZS.each do |z1|
-        matrix[[x1, y1, z1]] = action == "on" if range_x.include?(x1) && range_y.include?(y1) && range_z.include?(z1)
+  x1 = XS.bsearch_index { |x| x >= range_x.first }
+  x2 = XS.bsearch_index { |x| x >= range_x.last + 1 }
+  y1 = YS.bsearch_index { |y| y >= range_y.first }
+  y2 = YS.bsearch_index { |y| y >= range_y.last + 1 }
+  z1 = ZS.bsearch_index { |z| z >= range_z.first }
+  z2 = ZS.bsearch_index { |z| z >= range_z.last + 1 }
+
+  (x1...x2).each do |x|
+    (y1...y2).each do |y|
+      (z1...z2).each do |z|
+        matrix[[x, y, z]] = action == "on"
       end
     end
   end
@@ -69,10 +76,12 @@ end
 
 sum = 0
 
-XS.each_cons(2) do |x1, x2|
-  YS.each_cons(2) do |y1, y2|
-    ZS.each_cons(2) do |z1, z2|
-      sum += (x2 - x1) * (y2 - y1) * (z2 - z1) if matrix[[x1, y1, z1]]
+XS.length.times do |x|
+  YS.length.times do |y|
+    ZS.length.times do |z|
+      if matrix[[x, y, z]]
+        sum += (XS[x + 1] - XS[x]) * (YS[y + 1] - YS[y]) * (ZS[z + 1] - ZS[z])
+      end
     end
   end
 end
