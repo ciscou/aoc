@@ -118,7 +118,6 @@ class Amphipods
     self
   end
 
-  # Good ol' Dijkstra (or maybe A*)
   def solve
     initial_state = @amphipods.map(&:dup)
 
@@ -135,8 +134,6 @@ class Amphipods
       state = node[:state]
       total_energy = node[:total_energy]
 
-      puts total_energy
-
       if state.all? { |a| is_in_its_own_room?(a) }
         return total_energy
       end
@@ -145,8 +142,7 @@ class Amphipods
         next if visited[hashify_state(next_state)] <= total_energy + energy
         visited[hashify_state(next_state)] = total_energy + energy
 
-        # TODO: A*? Sum manhattan distance for each amphipod until its own room * its movement cost
-        queue << { state: next_state.map(&:dup), total_energy: total_energy + energy, priority: -(total_energy + energy) }
+        queue << { state: next_state.map(&:dup), total_energy: total_energy + energy, priority: -(total_energy + energy + heuristic(next_state)) }
       end
     end
 
@@ -154,6 +150,20 @@ class Amphipods
   end
 
   private
+
+  def heuristic(next_state)
+    h = 0
+
+    next_state.each do |amphipod|
+      if is_in_hallway?(amphipod)
+        h += (1 + (amphipod[:col] - ROOM_FOR_AMPHIPOD[amphipod[:type]]).abs) * ENERGY_PER_STEP_FOR_AMPHIPOD[amphipod[:type]]
+      elsif is_in_another_room?(amphipod)
+        h += (amphipod[:row] - 1 + (amphipod[:col] - ROOM_FOR_AMPHIPOD[amphipod[:type]]).abs) * ENERGY_PER_STEP_FOR_AMPHIPOD[amphipod[:type]]
+      end
+    end
+
+    h
+  end
 
   def hashify_state(state)
     hash = []
@@ -178,8 +188,10 @@ class Amphipods
         room_col = ROOM_FOR_AMPHIPOD[amphipod[:type]]
 
         # go only if there are no amphipods of another type there
-        if [2, 3, 4, 5].all? { |room_row| amphipods_by_position[[room_row, room_col]].all? { |a| a[:type] == amphipod[:type] } }
-          [2, 3, 4, 5].each do |room_row|
+        if (2..5).all? { |room_row| amphipods_by_position[[room_row, room_col]].all? { |a| a[:type] == amphipod[:type] } }
+          next_states_ending_at_home = []
+
+          (2..5).each do |room_row|
             path = calculate_path([amphipod[:row], amphipod[:col]], [room_row, room_col])
 
             # Do not run over other amphipods
@@ -188,9 +200,12 @@ class Amphipods
 
               next_state[i][:row] = room_row
               next_state[i][:col] = room_col
-              next_states << [next_state, ENERGY_PER_STEP_FOR_AMPHIPOD[amphipod[:type]] * path.length]
+              next_states_ending_at_home << [next_state, ENERGY_PER_STEP_FOR_AMPHIPOD[amphipod[:type]] * path.length]
             end
           end
+
+          # go to the bottom of the room
+          next_states << next_states_ending_at_home.last unless next_states_ending_at_home.empty?
         end
       end
 
