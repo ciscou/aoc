@@ -81,6 +81,24 @@ class Amphipods
         end
       end
     end
+
+    @room_bottom = 3
+  end
+
+  def prepare_part_2!
+    @cells.insert(3, "  #D#C#B#A#".chars)
+    @cells.insert(4, "  #D#B#A#C#".chars)
+
+    @amphipods = []
+    @cells.length.times do |row|
+      @cells[row].length.times do |col|
+        if ("A".."Z").include?(@cells[row][col])
+          @amphipods.push({ type: @cells[row][col], row: row, col: col })
+        end
+      end
+    end
+
+    @room_bottom = 5
   end
 
   def print
@@ -188,10 +206,10 @@ class Amphipods
         room_col = ROOM_FOR_AMPHIPOD[amphipod[:type]]
 
         # go only if there are no amphipods of another type there
-        if (2..5).all? { |room_row| amphipods_by_position[[room_row, room_col]].all? { |a| a[:type] == amphipod[:type] } }
+        if (2..@room_bottom).all? { |room_row| amphipods_by_position[[room_row, room_col]].all? { |a| a[:type] == amphipod[:type] } }
           next_states_ending_at_home = []
 
-          (2..5).each do |room_row|
+          (2..@room_bottom).each do |room_row|
             path = calculate_path([amphipod[:row], amphipod[:col]], [room_row, room_col])
 
             # Do not run over other amphipods
@@ -208,10 +226,6 @@ class Amphipods
           next_states << next_states_ending_at_home.last unless next_states_ending_at_home.empty?
         end
       end
-
-      # puts "before"
-      # puts next_states.map(&:first).map(&:inspect)
-      # puts
 
       if is_in_another_room?(amphipod) || is_in_its_own_room_but_not_at_the_bottom?(amphipod)
         # go to the hallway
@@ -231,30 +245,7 @@ class Amphipods
           end
         end
       end
-
-      # puts "after"
-      # puts next_states.map(&:first).map(&:inspect)
-      # $stdin.gets
     end
-
-    # me_interesa = next_states.map(&:first).select { |s| s.include?({ type: "A", row: 1, col: 10 }) }
-    # me_interesa.each do |me_interesa_state|
-    #   puts 1
-    #   puts(me_interesa_state - state).inspect
-    #   puts 2
-    #   puts(state - me_interesa_state).inspect
-    # end
-    # puts "yata"
-    # $stdin.gets
-
-    # next_states.each do |next_state, energy|
-    #   if state[1..-1].all? { |a| is_in_its_own_room?(a) }
-    #     puts energy
-    #     puts next_state.map(&:inspect)
-    #     puts next_state.all? { |a| is_in_its_own_room?(a) }
-    #     $stdin.gets
-    #   end
-    # end
 
     next_states
   end
@@ -303,7 +294,7 @@ class Amphipods
   end
 
   def is_in_its_own_room_but_not_at_the_bottom?(amphipod)
-    is_in_its_own_room?(amphipod) && amphipod[:row] < 5
+    is_in_its_own_room?(amphipod) && amphipod[:row] < @room_bottom
   end
 
   def is_in_another_room?(amphipod)
@@ -312,5 +303,7 @@ class Amphipods
 end
 
 amphipods = Amphipods.new
+puts amphipods.solve
 
-puts "Part 1: #{amphipods.solve.inspect}"
+amphipods.prepare_part_2!
+puts amphipods.solve
