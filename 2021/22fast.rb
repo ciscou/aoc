@@ -52,7 +52,7 @@ XS.sort!.uniq!
 YS.sort!.uniq!
 ZS.sort!.uniq!
 
-matrix = Hash.new(false)
+matrix = Array.new(XS.length) { Array.new(YS.length) { Array.new(ZS.length, false) } }
 
 reboot_steps.each do |step|
   range_x, range_y, range_z = step[:ranges]
@@ -68,7 +68,7 @@ reboot_steps.each do |step|
   (x1...x2).each do |x|
     (y1...y2).each do |y|
       (z1...z2).each do |z|
-        matrix[[x, y, z]] = action == "on"
+        matrix[x][y][z] = action == "on"
       end
     end
   end
@@ -76,10 +76,10 @@ end
 
 sum = 0
 
-XS.length.times do |x|
-  YS.length.times do |y|
-    ZS.length.times do |z|
-      if matrix[[x, y, z]]
+(XS.length - 1).times do |x|
+  (YS.length - 1).times do |y|
+    (ZS.length - 1).times do |z|
+      if matrix[x][y][z]
         sum += (XS[x + 1] - XS[x]) * (YS[y + 1] - YS[y]) * (ZS[z + 1] - ZS[z])
       end
     end
