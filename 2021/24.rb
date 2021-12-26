@@ -20,11 +20,11 @@ class Program
     @cache = {}
   end
 
-  def find_ws_that_makes_z_0(i, z_was)
-    @cache[[i, z_was]] ||= do_find_ws_that_makes_z_0(i, z_was)
+  def find_ws_that_makes_z_0(i, z_was, candidate_digits)
+    @cache[[i, z_was]] ||= do_find_ws_that_makes_z_0(i, z_was, candidate_digits)
   end
 
-  def do_find_ws_that_makes_z_0(i, z_was)
+  def do_find_ws_that_makes_z_0(i, z_was, candidate_digits)
     unless i < PARAMS.length
       if z_was == 0
         return []
@@ -37,7 +37,7 @@ class Program
 
     return nil unless z_was < maxz
 
-    (9..1).step(-1).each do |w|
+    candidate_digits.each do |w|
       z = z_was
       x = z % 26 + b
       z /= a
@@ -47,7 +47,7 @@ class Program
         z += w + c
       end
 
-      ws = find_ws_that_makes_z_0(i + 1, z)
+      ws = find_ws_that_makes_z_0(i + 1, z, candidate_digits)
 
       return [w] + ws unless ws.nil?
     end
@@ -57,10 +57,5 @@ class Program
 end
 
 
-program = Program.new
-ws = program.find_ws_that_makes_z_0(0, 0)
-if ws.nil?
-  puts "No solution found!"
-else
-  puts ws.join
-end
+puts Program.new.find_ws_that_makes_z_0(0, 0, (9..1).step(-1)).join
+puts Program.new.find_ws_that_makes_z_0(0, 0, (1..9)).join
