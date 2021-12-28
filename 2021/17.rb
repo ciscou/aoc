@@ -23,8 +23,6 @@ def fx(vx, n)
     end
   end
 
-  p [vxwas, n, x, fy(vxwas, n)] if x == fy(vxwas, n)
-
   x
 end
 

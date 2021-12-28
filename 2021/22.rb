@@ -34,99 +34,56 @@ end
 
 puts cubies.size
 
-class Prism
-  def initialize(ranges)
-    @xmin, @xmax = ranges[0]
-    @ymin, @ymax = ranges[1]
-    @zmin, @zmax = ranges[2]
-  end
+# part 2 corner compression highly inspired by https://www.youtube.com/watch?v=YKpViLcTp64
 
-  attr_reader :xmin, :xmax, :ymin, :ymax, :zmin, :zmax
+XS = []
+YS = []
+ZS = []
 
-  def volume
-    (@xmax - @xmin + 1) *
-    (@ymax - @ymin + 1) *
-    (@zmax - @zmin + 1)
-  end
+reboot_steps.each do |step|
+  range_x, range_y, range_z = step[:ranges]
 
-  def remove(hole)
-    res = [self]
-
-    x_split_points = [[@xmin, @xmax]]
-
-    if @xmin <= hole.xmin && hole.xmax <= @xmax
-      x_split_points = [[@xmin, hole.xmin - 1], [hole.xmin, hole.xmax], [hole.xmax + 1, @xmax]]
-    elsif hole.xmin <= @xmin && @xmin <= hole.xmax && hole.xmax <= @xmax
-      x_split_points = [[@xmin, hole.xmax], [hole.xmax + 1, @xmax]]
-    elsif @xmin <= hole.xmin && hole.xmin <= @xmax && @xmax <= hole.xmax
-      x_split_points = [[@xmin, hole.xmin - 1], [hole.xmin, @xmax]]
-    end
-
-    x_split_points.reject! { |a, b| a > b }
-
-    res = x_split_points.flat_map do |x1, x2|
-      res.map do |prism|
-        Prism.new([[x1, x2], [prism.ymin, prism.ymax], [prism.zmin, prism.zmax]])
-      end
-    end
-
-    y_split_points = [[@ymin, @ymax]]
-
-    if @ymin <= hole.ymin && hole.ymax <= @ymax
-      y_split_points = [[@ymin, hole.ymin - 1], [hole.ymin, hole.ymax], [hole.ymax + 1, @ymax]]
-    elsif hole.ymin <= @ymin && @ymin <= hole.ymax && hole.ymax <= @ymax
-      y_split_points = [[@ymin, hole.ymax], [hole.ymax + 1, @ymax]]
-    elsif @ymin <= hole.ymin && hole.ymin <= @ymax && @ymax <= hole.ymax
-      y_split_points = [[@ymin, hole.ymin - 1], [hole.ymin, @ymax]]
-    end
-
-    y_split_points.reject! { |a, b| a > b }
-
-    res = y_split_points.flat_map do |y1, y2|
-      res.map do |prism|
-        Prism.new([[prism.xmin, prism.xmax], [y1, y2], [prism.zmin, prism.zmax]])
-      end
-    end
-
-    z_split_points = [[@zmin, @zmax]]
-
-    if @zmin <= hole.zmin && hole.zmax <= @zmax
-      z_split_points = [[@zmin, hole.zmin - 1], [hole.zmin, hole.zmax], [hole.zmax + 1, @zmax]]
-    elsif hole.zmin <= @zmin && @zmin <= hole.zmax && hole.zmax <= @zmax
-      z_split_points = [[@zmin, hole.zmax], [hole.zmax + 1, @zmax]]
-    elsif @zmin <= hole.zmin && hole.zmin <= @zmax && @zmax <= hole.zmax
-      z_split_points = [[@zmin, hole.zmin - 1], [hole.zmin, @zmax]]
-    end
-
-    z_split_points.reject! { |a, b| a > b }
-
-    res = z_split_points.flat_map do |z1, z2|
-      res.map do |prism|
-        Prism.new([[prism.xmin, prism.xmax], [prism.ymin, prism.ymax], [z1, z2]])
-      end
-    end
-
-    res.reject do |prism|
-      hole.xmin <= prism.xmin && prism.xmax <= hole.xmax &&
-      hole.ymin <= prism.ymin && prism.ymax <= hole.ymax &&
-      hole.zmin <= prism.zmin && prism.zmax <= hole.zmax
-    end
-  end
+  XS << range_x.first << range_x.last + 1
+  YS << range_y.first << range_y.last + 1
+  ZS << range_z.first << range_z.last + 1
 end
 
-prisms = []
+XS.sort!.uniq!
+YS.sort!.uniq!
+ZS.sort!.uniq!
 
-reboot_steps.each_with_index do |step, index|
-  puts index
-  puts prisms.size
+matrix = Array.new(XS.length) { Array.new(YS.length) { Array.new(ZS.length, false) } }
 
-  ranges = step[:ranges]
+reboot_steps.each do |step|
+  range_x, range_y, range_z = step[:ranges]
   action = step[:action]
 
-  prism = Prism.new(ranges)
+  x1 = XS.bsearch_index { |x| x >= range_x.first }
+  x2 = XS.bsearch_index { |x| x >= range_x.last + 1 }
+  y1 = YS.bsearch_index { |y| y >= range_y.first }
+  y2 = YS.bsearch_index { |y| y >= range_y.last + 1 }
+  z1 = ZS.bsearch_index { |z| z >= range_z.first }
+  z2 = ZS.bsearch_index { |z| z >= range_z.last + 1 }
 
-  prisms = prisms.flat_map { |p| p.remove(prism) }
-  prisms << prism if action == "on"
+  (x1...x2).each do |x|
+    (y1...y2).each do |y|
+      (z1...z2).each do |z|
+        matrix[x][y][z] = action == "on"
+      end
+    end
+  end
 end
 
-puts prisms.sum(&:volume)
+sum = 0
+
+(XS.length - 1).times do |x|
+  (YS.length - 1).times do |y|
+    (ZS.length - 1).times do |z|
+      if matrix[x][y][z]
+        sum += (XS[x + 1] - XS[x]) * (YS[y + 1] - YS[y]) * (ZS[z + 1] - ZS[z])
+      end
+    end
+  end
+end
+
+puts sum
