@@ -1,19 +1,6 @@
 INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
 
-elves = []
-elf = []
+elves = INPUT.chunk { |line| !line.empty? || nil }.map { |_, calories| calories.map(&:to_i).sum }.sort.reverse
 
-INPUT.each do |line|
-  if line.empty?
-    elves << elf
-    elf = []
-  else
-    elf << line.to_i
-  end
-end
-
-elves << elf
-
-puts elves.map(&:sum).max
-
-puts elves.map(&:sum).sort.reverse[0, 3].sum
+puts elves[0]
+puts elves[0, 3].sum
