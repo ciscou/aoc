@@ -1,4 +1,4 @@
-INPUT = File.read(__FILE__.sub('.rb', '.txt')).lines.map(&:chomp)
+INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
 OPPONENT_PLAY = { "A" => :rock, "B" => :paper, "C" => :scissors }
 PLAYER_PLAY   = { "X" => :rock, "Y" => :paper, "Z" => :scissors }
