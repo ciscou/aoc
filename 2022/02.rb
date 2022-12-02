@@ -15,56 +15,50 @@ WINS = {
 
 LOSES = WINS.invert
 
-rounds = INPUT.map do |line|
-  opponent, player = line.split(" ")
+def calculate_score(rounds)
+  rounds.sum do |opponent, player|
+    outcome_bonus = if opponent == player
+                      3
+                    elsif WINS[opponent] == player
+                      0
+                    else
+                      6
+                    end
 
-  [
-    OPPONENT_PLAY[opponent],
-    PLAYER_PLAY[player],
-  ]
+    play_bonus = PLAY_BONUS[player]
+
+    play_bonus + outcome_bonus
+  end
 end
 
-score = rounds.sum do |opponent, player|
-  outcome_bonus = if opponent == player
-                    3
-                  elsif WINS[opponent] == player
-                    0
-                  else
-                    6
-                  end
+def read_rounds(part:)
+  INPUT.map do |line|
+    opponent, player = line.split(" ")
 
-  play_bonus = PLAY_BONUS[player]
+    opponent_play = OPPONENT_PLAY[opponent]
+    player_play = calculate_player_play(opponent_play, player, part)
 
-  play_bonus + outcome_bonus
+    [
+      opponent_play,
+      player_play,
+    ]
+  end
 end
 
-puts score
-
-rounds = INPUT.map do |line|
-  opponent, outcome = line.split(" ")
-
-  [
-    OPPONENT_PLAY[opponent],
-    case outcome
-    when "X" then WINS[OPPONENT_PLAY[opponent]]
-    when "Y" then OPPONENT_PLAY[opponent]
-    when "Z" then LOSES[OPPONENT_PLAY[opponent]]
-    end,
-  ]
+def calculate_player_play(opponent_play, player, part)
+  if part == 2
+    case player
+    when "X" then WINS[opponent_play]
+    when "Y" then opponent_play
+    when "Z" then LOSES[opponent_play]
+    end
+  else
+    PLAYER_PLAY[player]
+  end
 end
 
-score = rounds.sum do |opponent, player|
-  outcome_bonus = if opponent == player
-                    3
-                  elsif WINS[opponent] == player
-                    0
-                  else
-                    6
-                  end
+rounds = read_rounds(part: 1)
+puts calculate_score(rounds)
 
-  play_bonus = PLAY_BONUS[player]
-
-  play_bonus + outcome_bonus
-end
-
-puts score
+rounds = read_rounds(part: 2)
+puts calculate_score(rounds)
