@@ -10,11 +10,16 @@ end
 rucksacks = INPUT.map(&:chars)
 
 part1 = rucksacks.sum do |rucksack|
-  priority(rucksack.each_slice(rucksack.length / 2).reduce(:&).first)
+  containers = rucksack.each_slice(rucksack.length / 2)
+  common = containers.reduce(:&)
+
+  priority(common.first)
 end
 puts part1
 
 part2 = rucksacks.each_slice(3).sum do |group|
-  priority(group.reduce(:&).first)
+  common = group.reduce(:&)
+
+  priority(common.first)
 end
 puts part2
