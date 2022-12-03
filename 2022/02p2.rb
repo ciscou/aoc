@@ -1,0 +1,1 @@
+O={'A'=>:r,'B'=>:p,'C'=>:s};B={r:1,p:2,s:3};X={r: :s,p: :r,s: :p, b:0};Y={r: :r, p: :p, s: :s, b:3};Z={r: :p,p: :s,s: :r, b:6};puts File.readlines('02.txt',chomp:1).sum{|l|o,p=l.split' ';a=self.class.const_get(p);a[:b]+B[a[O[o]]]}
