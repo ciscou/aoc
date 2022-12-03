@@ -1,1 +1,1 @@
-O={'A'=>:r,'B'=>:p,'C'=>:s};B={r:1,p:2,s:3};X={r: :s,p: :r,s: :p, b:0};Y={r: :r, p: :p, s: :s, b:3};Z={r: :p,p: :s,s: :r, b:6};puts File.readlines('02.txt',chomp:1).sum{|l|o,p=l.split' ';a=self.class.const_get(p);a[:b]+B[a[O[o]]]}
+B={r:1,p:2,s:3};X={'A'=>:s,'B'=>:r,'C'=>:p,b:0};Y={'A'=>:r,'B'=>:p,'C'=>:s,b:3};Z={'A'=>:p,'B'=>:s,'C'=>:r,b:6};puts File.readlines('02.txt').map(&:split).sum{|o,p|a=self.class.const_get p;a[:b]+B[a[o]]}
