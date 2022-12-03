@@ -5,8 +5,6 @@ PLAYER_PLAY   = { "X" => :rock, "Y" => :paper, "Z" => :scissors }
 
 PLAY_BONUS = { rock: 1, paper: 2, scissors: 3 }
 
-OUTCOME_BONUS = { loss: 0, draw: 3, win: 6 }
-
 WINS = {
       rock: :scissors,
   scissors: :paper,
