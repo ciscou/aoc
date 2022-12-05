@@ -1,0 +1,1 @@
+a,b=File.readlines('05.txt').chunk{(_1=="\n")&&nil}.map(&:last);s=a.map(&:chars).transpose;s.each{_1.delete(' ')};b.each{_,c,_,f,_,t=_1.split.map(&:to_i);c.times{s[t*4-3].unshift s[f*4-3].shift}};p s.map(&:first).join
