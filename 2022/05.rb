@@ -37,7 +37,7 @@ puts stacks.map(&:last).join("")
 
 stacks = reset_stacks
 for_each_instruction do |count, from, to|
-  crates = stacks[from-1].slice!(-count..)
+  crates = stacks[from-1].pop(count)
   stacks[to-1].concat(crates)
 end
 puts stacks.map(&:last).join("")
