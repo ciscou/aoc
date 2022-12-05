@@ -24,3 +24,24 @@ INPUT[empty_idx+1..].each do |line|
 end
 
 puts stacks.map(&:last).join("")
+
+stacks = Array.new((INPUT[empty_idx-2].length + 1) / 4) { [] }
+
+INPUT[..empty_idx-2].reverse_each do |line|
+  stacks.each_with_index do |stack, i|
+    crate = line[i * 4 + 1]
+
+    stack.push(crate) unless crate == " "
+  end
+end
+
+INPUT[empty_idx+1..].each do |line|
+  words = line.split
+
+  count, from, to = [1, 3, 5].map { |i| words[i].to_i }
+
+  crates = stacks[from-1].slice!(-count..)
+  stacks[to-1].concat(crates)
+end
+
+puts stacks.map(&:last).join("")
