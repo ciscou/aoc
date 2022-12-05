@@ -1,1 +1,1 @@
-puts File.readlines('01.txt',chomp:1).chunk{|l|l.empty?&&nil}.map{|_,c|c.sum(&:to_i)}.max
+puts File.read('01.txt').split("\n\n").map{_1.split.sum(&:to_i)}.max
