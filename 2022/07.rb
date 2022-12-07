@@ -5,20 +5,16 @@ class AoCDirectory
     @entries = {}
   end
 
-  def dfs
-    return [self] + @entries.values.flat_map(&:dfs)
-  end
-
   def size
     @size ||= calculate_size
   end
 
-  def directory(name)
-    @entries[name] ||= AoCDirectory.new
+  def mkdir(name)
+    @entries[name] = AoCDirectory.new
   end
 
-  def file(name, size)
-    @entries[name] ||= AoCFile.new(size)
+  def touch(name, size)
+    @entries[name] = AoCFile.new(size)
   end
 
   private
@@ -33,50 +29,49 @@ class AoCFile
     @size = size
   end
 
-  def dfs
-    []
-  end
-
   attr_reader :size
 end
 
 root = nil
-pwd = []
+path = []
+all_dirs = []
 
 COMMANDS = INPUT.chunk_while { |l1, l2| !l2.start_with?("$") }
 
 COMMANDS.each do |command|
   input, *output = command
-  _dollar, cmd, *args = input.split
+  _dollar, cmd, arg = input.split
+
+  pwd = path.last
 
   case cmd
   when "cd"
-    case args
-    when ["/"]
+    case arg
+    when "/"
       root = AoCDirectory.new
-      pwd.push(root)
-    when [".."]
-      pwd.pop
+      path.push(root)
+      all_dirs.push(root)
+    when ".."
+      path.pop
     else
-      directory = pwd.last.directory(args.last)
-      pwd.push(directory)
+      dir = pwd.mkdir(arg)
+      path.push(dir)
+      all_dirs.push(dir)
     end
   when "ls"
     output.each do |line|
       unless line.start_with?("dir ")
         size, name = line.split
-        pwd.last.file(name, size.to_i)
+        pwd.touch(name, size.to_i)
       end
     end
   end
 end
 
-all_dirs = root.dfs
+puts all_dirs.map(&:size).select { |size| size <= 100_000 }.sum
 
-puts all_dirs.map(&:size).select { |size| size <= 100000 }.sum
-
-disk_size = 70000000
-update_needs = 30000000
+disk_size = 70_000_000
+update_needs = 30_000_000
 available_space = disk_size - root.size
 needs_to_free = update_needs - available_space
 
