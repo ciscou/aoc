@@ -71,4 +71,13 @@ COMMANDS.each do |command|
   end
 end
 
-puts root.dfs.select.map(&:size).select { |size| size <= 100000 }.sum
+all_dirs = root.dfs
+
+puts all_dirs.map(&:size).select { |size| size <= 100000 }.sum
+
+disk_size = 70000000
+update_needs = 30000000
+available_space = disk_size - root.size
+needs_to_free = update_needs - available_space
+
+puts all_dirs.map(&:size).select { |size| size >= needs_to_free }.min
