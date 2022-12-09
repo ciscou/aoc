@@ -1,0 +1,1 @@
+M={U:[0,-1],D:[0,1],R:[1,0],L:[-1,0]};r,v=[[0,0]]*2,{};File.readlines('09.txt').each{|l|d,c=l.split;c.to_i.times{2.times{|i|z=r[i-1].zip(r[i]).map{_1-_2};r[i]=i<1?r[0].zip(M[d.to_sym]).map{_1+_2}:z.all?{_1.abs<2}?r[i]:r[i].zip(z).map{_1+(_2<=>0)};v[r[-1]]=1}}};p v.size
