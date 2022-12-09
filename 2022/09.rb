@@ -2,16 +2,10 @@ require 'set'
 
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
-def move(head, dir)
-  hx, hy = head
-  dx, dy = case dir
-           when "U" then [ 0, -1]
-           when "D" then [ 0,  1]
-           when "R" then [ 1,  0]
-           when "L" then [-1,  0]
-           end
+MOVEMENT = { "U" => [0, -1], "D" => [0, 1], "R" => [1, 0], "L" => [-1, 0] }
 
-  [hx + dx, hy + dy]
+def move(head, dir)
+  head.zip(MOVEMENT.fetch(dir)).map { |a, b| a + b }
 end
 
 def follow(knot1, knot2)
@@ -35,11 +29,7 @@ def simulate(knots)
 
     count.to_i.times do
       rope.length.times do |idx|
-        rope[idx] = if idx < 1
-                      move(rope[idx], dir)
-                    else
-                      follow(rope[idx-1], rope[idx])
-                    end
+        rope[idx] = idx < 1 ? move(rope[idx], dir) : follow(rope[idx-1], rope[idx])
       end
 
       visited.add(rope.last)
