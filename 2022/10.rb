@@ -1,5 +1,14 @@
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
+def monitor_signal_strenght(signal_strengths, cycle, x)
+  signal_strengths << cycle * x if (cycle - 20) % 40 == 0
+end
+
+def draw_pixel(crt, sprite)
+  pixel = crt.length % 40
+  crt << ((pixel - sprite).abs < 2)
+end
+
 x = 1
 cycle = 0
 signal_strengths = []
@@ -7,8 +16,8 @@ crt = []
 
 INPUT.each do |line|
   cycle += 1
-  signal_strengths << cycle * x if (cycle - 20) % 40 == 0
-  crt << ((((crt.length - 1) % 40) - (x - 1)).abs < 2)
+  monitor_signal_strenght(signal_strengths, cycle, x)
+  draw_pixel(crt, x)
 
   instruction, argument = line.split
 
@@ -16,8 +25,8 @@ INPUT.each do |line|
   when "noop"
   when "addx"
     cycle += 1
-    signal_strengths << cycle * x if (cycle - 20) % 40 == 0
-    crt << ((((crt.length - 1) % 40) - (x - 1)).abs < 2)
+    monitor_signal_strenght(signal_strengths, cycle, x)
+    draw_pixel(crt, x)
 
     x += argument.to_i
   else
