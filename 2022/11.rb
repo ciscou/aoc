@@ -2,41 +2,31 @@ INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
 class Monkey
   def initialize(input)
-    _, starting, operation, test, if_true, if_false = input
+    _, starting, operation, *test = input
 
     @worry_levels = starting.split(": ").last.split(", ").map(&:to_i)
-    @operation, @operator = operation.split.last(2)
-    if @operator == "old"
-      @operation = @operation == "+" ? "*" : "^"
-      @operator = 2
-    else
-      @operator = @operator.to_i
-    end
-    @test = test.split.last.to_i
-    @if_true = if_true.split.last.to_i
-    @if_false = if_false.split.last.to_i
+    @operation = case operation
+                 when %r{old \+ (\d+)$} then ->(old) { old + $1.to_i }
+                 when %r{old \* (\d+)$} then ->(old) { old * $1.to_i }
+                 when %r{old \* old$}   then ->(old) { old * old }
+                 else unreachable
+                 end
+    @modulo, @if_true, @if_false = test.map { |s| s.split.last.to_i }
 
     @inspected_items = 0
   end
 
-  attr_reader :inspected_items, :test
+  attr_reader :inspected_items, :modulo
 
   def turn(part:)
-    @worry_levels.each do |worry_level|
+    until @worry_levels.empty?
       @inspected_items += 1
 
-      worry_level = case @operation
-                    when "+" then worry_level + @operator
-                    when "*" then worry_level * @operator
-                    when "^" then worry_level ** @operator
-                    else unreachable
-                    end
+      worry_level = @operation.call(@worry_levels.shift)
       worry_level /= 3 if part == 1
 
-      yield worry_level, worry_level % @test == 0 ? @if_true : @if_false
+      yield worry_level, worry_level % @modulo == 0 ? @if_true : @if_false
     end
-
-    @worry_levels = []
   end
 
   def receive(worry_level)
@@ -52,7 +42,7 @@ class Monkeys
   def round(part:)
     @monkeys.each do |monkey|
       monkey.turn(part: part) do |worry_level, to|
-        worry_level %= tests_prod if part == 2
+        worry_level %= moduli_prod if part == 2
         @monkeys[to].receive(worry_level)
       end
     end
@@ -64,8 +54,8 @@ class Monkeys
 
   private
 
-  def tests_prod
-    @tests_prod ||= @monkeys.map(&:test).reduce(:*)
+  def moduli_prod
+    @moduli_prod ||= @monkeys.map(&:modulo).reduce(:*)
   end
 end
 
