@@ -19,9 +19,9 @@ class Monkey
     @inspected_items = 0
   end
 
-  attr_reader :inspected_items, :worry_levels
+  attr_reader :inspected_items, :test
 
-  def turn
+  def turn(part:)
     @worry_levels.each do |worry_level|
       @inspected_items += 1
 
@@ -31,7 +31,7 @@ class Monkey
                     when "^" then worry_level ** @operator
                     else unreachable
                     end
-      worry_level /= 3
+      worry_level /= 3 if part == 1
 
       yield worry_level, worry_level % @test == 0 ? @if_true : @if_false
     end
@@ -49,10 +49,11 @@ class Monkeys
     @monkeys = input.chunk { |l| l.empty? && nil }.map { |_, chunk| Monkey.new(chunk) }
   end
 
-  def round
+  def round(part:)
     @monkeys.each do |monkey|
-      monkey.turn do |thrown_item, to|
-        @monkeys[to].receive(thrown_item)
+      monkey.turn(part: part) do |worry_level, to|
+        worry_level %= tests_prod if part == 2
+        @monkeys[to].receive(worry_level)
       end
     end
   end
@@ -60,8 +61,18 @@ class Monkeys
   def business
     @monkeys.map(&:inspected_items).max(2).reduce(:*)
   end
+
+  private
+
+  def tests_prod
+    @tests_prod ||= @monkeys.map(&:test).reduce(:*)
+  end
 end
 
 monkeys = Monkeys.new(INPUT)
-20.times { monkeys.round }
+20.times { monkeys.round(part: 1) }
+puts monkeys.business
+
+monkeys = Monkeys.new(INPUT)
+10_000.times { monkeys.round(part: 2) }
 puts monkeys.business
