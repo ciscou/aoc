@@ -18,17 +18,17 @@ grid.each_with_index do |row, r|
   end
 end
 
-def bfs(grid, pos, target)
+def bfs(grid, row, col, downwards=false)
   q = []
   visited = {}
 
-  q << [pos[0], pos[1], 0]
-  visited[[pos[0], pos[1]]] = true
+  q << [row, col, 0]
+  visited[[row, col]] = true
 
   until q.empty?
     row, col, steps = q.shift
 
-    if row == target[0] && col == target[1]
+    if yield(row, col)
       return steps
     end
 
@@ -41,7 +41,11 @@ def bfs(grid, pos, target)
       next_row, next_col, next_steps = row + dr, col + dc, steps + 1
 
       next if next_row < 0 || next_row >= grid.length || next_col < 0 || next_col >= grid[next_row].length
-      next if grid[next_row][next_col].ord - grid[row][col].ord > 1
+      if downwards
+        next if grid[next_row][next_col].ord - grid[row][col].ord < -1
+      else
+        next if grid[next_row][next_col].ord - grid[row][col].ord > 1
+      end
 
       next if visited[[next_row, next_col]]
       visited[[next_row, next_col]] = true
@@ -53,4 +57,12 @@ def bfs(grid, pos, target)
   return -1
 end
 
-puts bfs(grid, pos, target)
+part1 = bfs(grid, pos[0], pos[1]) do |row, col|
+  row == target[0] && col == target[1]
+end
+puts part1
+
+part2 = bfs(grid, target[0], target[1], true) do |row, col|
+  grid[row][col] == "a"
+end
+puts part2
