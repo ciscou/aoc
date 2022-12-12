@@ -23,10 +23,12 @@ def bfs(grid, row, col, downwards=false)
   visited = {}
 
   q << [row, col, 0]
-  visited[[row, col]] = true
 
   until q.empty?
     row, col, steps = q.shift
+
+    next if visited[[row, col]]
+    visited[[row, col]] = true
 
     if yield(row, col)
       return steps
@@ -46,9 +48,6 @@ def bfs(grid, row, col, downwards=false)
       else
         next if grid[next_row][next_col].ord - grid[row][col].ord > 1
       end
-
-      next if visited[[next_row, next_col]]
-      visited[[next_row, next_col]] = true
 
       q << [next_row, next_col, steps+1]
     end
