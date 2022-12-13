@@ -16,14 +16,9 @@ class Packet
     when [Array, Integer]
       self <=> Packet.new([other.data])
     when [Array, Array]
-      res = data.length < other.data.length ? -1 : 0
-      data.zip(other.data) do |datum, other_datum|
-        return 1 if other_datum.nil?
+      packets, other_packets = [data, other.data].map { |data| data.map { Packet.new(_1) } }
 
-        cmp = Packet.new(datum) <=> Packet.new(other_datum)
-        return cmp unless cmp == 0
-      end
-      res
+      packets <=> other_packets
     else
       unreachable
     end
