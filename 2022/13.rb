@@ -8,9 +8,7 @@ class Packet
   attr_reader :data
 
   def <=>(other)
-    puts "comparing #{inspect} and #{other.inspect}"
-
-    kk = case [data.class, other.data.class]
+    case [data.class, other.data.class]
     when [Integer, Integer]
       data <=> other.data
     when [Integer, Array]
@@ -29,10 +27,6 @@ class Packet
     else
       unreachable
     end
-
-    puts "comparing #{inspect} and #{other.inspect}: #{kk.inspect}"
-
-    kk
   end
 end
 
@@ -48,3 +42,11 @@ part1 = pairs.each_with_index.sum do |pair, index|
   end
 end
 puts part1
+
+dividers = [Packet.new([[2]]), Packet.new([[6]])]
+packets = pairs.flatten
+packets += dividers
+packets.sort!
+
+part2 = dividers.map { |divider| packets.index(divider) + 1 }.reduce(:*)
+puts part2
