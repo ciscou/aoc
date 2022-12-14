@@ -9,8 +9,12 @@ minx, maxx = points.map(&:first).minmax
 miny, maxy = points.map(&:last).minmax
 miny = [miny, 0].min
 
-grid = Array.new(maxy - miny + 1) { Array.new(maxx - minx + 1, '.') }
-grid[0 - miny][500 - minx] = '+'
+grid = Hash.new do |h1, x|
+  h1[x] = Hash.new do |h2, y|
+    h2[y] = y > maxy + 1 ? "#" : "."
+  end
+end
+grid[500][0] = '+'
 
 paths.each do |path|
   path.each_cons(2) do |p1, p2|
@@ -21,7 +25,7 @@ paths.each do |path|
     dy = (y2 - y1) <=> 0
 
     loop do
-      grid[y1 - miny][x1 - minx] = '#'
+      grid[x1][y1] = '#'
       break if x1 == x2 && y1 == y2
 
       x1 += dx
@@ -30,7 +34,7 @@ paths.each do |path|
   end
 end
 
-part1 = 0
+part2 = 0
 
 loop do
   sandx = 500
@@ -39,29 +43,24 @@ loop do
   rest = false
 
   loop do
-    break if sandx < minx
-    break if sandx > maxx
-    break if sandy < miny
-    break if sandy > maxy
-
-    if sandy == maxy || grid[sandy + 1 - miny][sandx - minx] == '.'
+    if grid[sandx][sandy + 1] == '.'
       sandy += 1
-    elsif sandx == minx || grid[sandy + 1 - miny][sandx - 1 - minx] == '.'
+    elsif grid[sandx - 1][sandy + 1] == '.'
       sandy += 1
       sandx -= 1
-    elsif sandx == maxx || grid[sandy + 1 - miny][sandx + 1 - minx] == '.'
+    elsif grid[sandx + 1][sandy + 1] == '.'
       sandy += 1
       sandx += 1
     else
-      grid[sandy - miny][sandx - minx] = 'o'
+      grid[sandx][sandy] = 'o'
       rest = true
       break
     end
   end
 
-  break unless rest
+  part2 += 1
 
-  part1 += 1
+  break if sandx == 500 && sandy == 0
 end
 
-puts part1
+puts part2
