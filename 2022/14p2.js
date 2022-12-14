@@ -218,10 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   Grid.prototype.isOutOfBounds = function(x, y) {
-    if(x < minx) return true;
-    if(y < miny) return true;
-    if(x > maxx) return true;
-    if(y > maxy) return true;
+    if(y > maxy + 1) return true;
 
     return false;
   }
@@ -236,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const grid = new Grid();
 
-  let part1 = 0;
+  let part2 = 0;
   let done = false;
   let sandX = 500;
   let sandY = 0;
@@ -245,11 +242,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const ctx = canvas.getContext("2d");
 
   update = () => {
-    if(grid.isOutOfBounds(sandX, sandY+1)) {
-      done = true;
-      console.log('part1', part1);
-    }
-
     if(grid.isEmpty(sandX, sandY+1)) {
       sandY++;
     } else if(grid.isEmpty(sandX-1, sandY+1)) {
@@ -259,10 +251,16 @@ document.addEventListener("DOMContentLoaded", () => {
       sandX++;
       sandY++;
     } else {
-      part1++;
-      grid.grainsOfSand.add([sandX, sandY].toString());
-      sandX = 500;
-      sandY = 0;
+      part2++;
+
+      if((sandX === 500) && (sandY === 0)) {
+        done = true;
+        console.log('part2', part2);
+      } else {
+        grid.grainsOfSand.add([sandX, sandY].toString());
+        sandX = 500;
+        sandY = 0;
+      }
     }
   }
 
@@ -285,8 +283,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   loop = () => {
-    for(let i=0; i<100; i++) {
-      update();
+    for(let i=0; i<5000; i++) {
+      if(!done) {
+        update();
+      }
     }
     draw();
 
