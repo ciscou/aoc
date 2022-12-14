@@ -270,25 +270,31 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.fillStyle = "skyblue";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = "brown";
+    ctx.fillStyle = "maroon";
     grid.bricks.forEach(brick => {
       const [x, y] = brick.split(",").map(s => parseInt(s));
       ctx.fillRect(x*3-1350, y*3, 3, 3);
     });
 
-    ctx.fillStyle = "orange";
-    ctx.fillRect(sandX*3-1350, sandY*3, 3, 3);
+    ctx.fillStyle = "#C2B280";
+
+    ctx.beginPath();
+    ctx.arc(sandX*3+1-1350, sandY*3+1, 1, 0, 2 + Math.PI)
+    ctx.fill();
+
     grid.grainsOfSand.forEach(grainOfSand => {
       const [x, y] = grainOfSand.split(",").map(s => parseInt(s));
-      ctx.fillRect(x*3-1350, y*3, 3, 3);
+
+      ctx.beginPath();
+      ctx.arc(x*3+1-1350, y*3+1, 1, 0, 2 + Math.PI)
+      ctx.fill();
     });
   }
 
   loop = () => {
     for(let i=0; i<100; i++) {
-      if(!done) {
-        update();
-      }
+      if(done) break;
+      update();
     }
     draw();
 
