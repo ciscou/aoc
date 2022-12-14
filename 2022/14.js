@@ -218,10 +218,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   Grid.prototype.isOutOfBounds = function(x, y) {
-    if(x < minx) return true;
-    if(y < miny) return true;
-    if(x > maxx) return true;
-    if(y > maxy) return true;
+    if(part == 2) {
+      if(y > maxy + 1) return true;
+    } else {
+      if(x < minx) return true;
+      if(y < miny) return true;
+      if(x > maxx) return true;
+      if(y > maxy) return true;
+    }
 
     return false;
   }
@@ -234,10 +238,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return true;
   }
 
-  const grid = new Grid();
+  let grid = new Grid();
 
-  let part1 = 0;
   let done = false;
+  let part = 1;
   let sandX = 500;
   let sandY = 0;
 
@@ -245,11 +249,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const ctx = canvas.getContext("2d");
 
   update = () => {
-    if(grid.isOutOfBounds(sandX, sandY+1)) {
-      done = true;
-      console.log('part1', part1);
-    }
-
     if(grid.isEmpty(sandX, sandY+1)) {
       sandY++;
     } else if(grid.isEmpty(sandX-1, sandY+1)) {
@@ -259,10 +258,32 @@ document.addEventListener("DOMContentLoaded", () => {
       sandX++;
       sandY++;
     } else {
-      part1++;
-      grid.grainsOfSand.add([sandX, sandY].toString());
-      sandX = 500;
-      sandY = 0;
+      if(part == 2) {
+        grid.grainsOfSand.add([sandX, sandY].toString());
+
+        if((sandX === 500) && (sandY === 0)) {
+          done = true;
+        }
+      } else {
+        if(grid.isOutOfBounds(sandX, sandY+1)) {
+          done = true;
+        }
+      }
+      if(done) {
+        console.log(grid.grainsOfSand.size);
+
+        if(part === 1) {
+          done = false;
+          part = 2;
+          grid = new Grid();
+          sandX = 500;
+          sandY = 0;
+        }
+      } else {
+        grid.grainsOfSand.add([sandX, sandY].toString());
+        sandX = 500;
+        sandY = 0;
+      }
     }
   }
 
@@ -275,6 +296,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const [x, y] = brick.split(",").map(s => parseInt(s));
       ctx.fillRect(x*3-1350, y*3, 3, 3);
     });
+
+    if(part === 2) {
+      ctx.fillRect(0, (maxy+2)*3, canvas.width, 3);
+    }
 
     ctx.fillStyle = "#C2B280";
 
@@ -292,7 +317,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   loop = () => {
-    for(let i=0; i<100; i++) {
+    let steps = 200;
+    if(part === 2) steps *= 100;
+    for(let i=0; i<steps; i++) {
       if(done) break;
       update();
     }
