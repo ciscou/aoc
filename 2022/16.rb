@@ -15,6 +15,7 @@ end
 
 (1..2).each do |part|
   max_time = part == 2 ? 26 : 30
+  max_flow = valve_flow_rate.values.sum
   max_pressure = 0
   queue = [{ valves: ["AA"] * part, open: {}, time: max_time, flow: 0, pressure: 0 }]
   visited = { queue.first[:valves] => queue.first.slice(:time, :flow, :pressure) }
@@ -24,6 +25,7 @@ end
     valves, time, open, flow, pressure = node.values_at(:valves, :time, :open, :flow, :pressure)
 
     next unless time > 0
+    next unless pressure + (time * max_flow) > max_pressure
 
     max_pressure = [max_pressure, pressure].max
 
@@ -44,7 +46,8 @@ end
     available_moves = part == 2 ? available_moves.reduce(:product) : available_moves.first.map { [_1] }
 
     available_moves.each do |moves|
-      just_open = moves.map { _1[:open] }.compact.uniq - open.keys
+      just_open = moves.map { _1[:open] }.compact
+      next if just_open.size > just_open.uniq.size
 
       next_valves = moves.map { _1[:valve] }.sort
       next_time = time - 1
