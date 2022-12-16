@@ -1,105 +1,90 @@
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
 adjacency = Hash.new { |h, k| h[k] = [] }
-valves = {}
+valve_flow_rate = {}
 
 INPUT.each do |line|
-  valve_flow_rate, tunnels = line.split("; ")
+  valve, tunnels = line.split("; ")
 
-  _, valve, _, _, rate = valve_flow_rate.split
-  valves[valve] = rate.split("=").last.to_i
+  _, valve, _, _, rate = valve.split
+  valve_flow_rate[valve] = rate.split("=").last.to_i
 
   neighbours = tunnels.split(" ", 5).last.split(", ")
   adjacency[valve] = neighbours
 end
 
 part1 = 0
-queue = [{ valv: "AA", open: {}, time: 30, flow: 0, pres: 0 }]
-visited = { "AA" => { time: 30, flow: 0, pres: 0 } }
+queue = [{ valve: "AA", open: {}, time: 30, flow: 0, pressure: 0 }]
+visited = { queue.first[:valve] => queue.first.slice(:time, :flow, :pressure) }
 
 until queue.empty?
   node = queue.shift
-
-  valv = node[:valv]
-  time = node[:time]
-  open = node[:open]
-  flow = node[:flow]
-  pres = node[:pres]
+  valve, time, open, flow, pressure = node.values_at(:valve, :time, :open, :flow, :pressure)
 
   next unless time > 0
 
-  part1 = [part1, pres].max
+  part1 = [part1, pressure].max
 
-  if !open[valv] && valves[valv] > 0
-    queue.push(valv: valv, time: time - 1, open: open.merge(valv => true), flow: flow + valves[valv], pres: pres + flow + valves[valv])
+  if !open[valve] && valve_flow_rate[valve] > 0
+    queue.push(
+      valve: valve,
+      time: time - 1,
+      open: open.merge(valve => true),
+      flow: flow + valve_flow_rate[valve],
+      pressure: pressure + flow + valve_flow_rate[valve],
+    )
   end
 
-  adjacency[valv].each do |neig|
-    v = visited[neig]
-    next if v && v[:time] >= time - 1 && v[:flow] >= flow && v[:pres] >= pres
+  adjacency[valve].each do |next_valve|
+    v = visited[next_valve]
+    next if v && v[:time] >= time - 1 && v[:flow] >= flow && v[:pressure] >= pressure
 
-    visited[neig] = { time: time - 1, flow: flow, pres: pres }
-
-    queue.push(valv: neig, time: time - 1, open: open, flow: flow, pres: pres + flow)
+    visited[next_valve] = { time: time - 1, flow: flow, pressure: pressure }
+    queue.push(valve: next_valve, time: time - 1, open: open, flow: flow, pressure: pressure + flow)
   end
 end
 
 puts part1
 
 part2 = 0
-queue = [{ valv: ["AA", "AA"], open: {}, time: 26, flow: 0, pres: 0 }]
-visited = { ["AA", "AA"] => { time: 26, flow: 0, pres: 0 } }
+queue = [{ valves: ["AA", "AA"], open: {}, time: 26, flow: 0, pressure: 0 }]
+visited = { queue.first[:valves] => queue.first.slice(:time, :flow, :pressure) }
 
 until queue.empty?
   node = queue.shift
-
-  valv = node[:valv]
-  time = node[:time]
-  open = node[:open]
-  flow = node[:flow]
-  pres = node[:pres]
+  valves, time, open, flow, pressure = node.values_at(:valves, :time, :open, :flow, :pressure)
 
   next unless time > 0
 
-  if pres > part2
-    part2 = pres
-    # puts part2
-  end
+  part2 = [part2, pressure].max
 
-  available_moves = valv.map do |valv|
+  available_moves = valves.map do |valve|
     moves = []
 
-    if !open[valv] && valves[valv] > 0
-      moves.push(valv: valv, open: valv)
+    if !open[valve] && valve_flow_rate[valve] > 0
+      moves.push(valve: valve, open: valve)
     end
 
-    adjacency[valv].each do |neig|
-      moves.push(valv: neig, open: nil)
+    adjacency[valve].each do |next_valve|
+      moves.push(valve: next_valve, open: nil)
     end
 
     moves
   end
 
   available_moves.reduce(:product).each do |moves|
-    next_valv = moves.map { _1[:valv] }.sort
+    next_valves = moves.map { _1[:valve] }.sort
     just_open = moves.map { _1[:open] }.compact.uniq - open.keys
     next_open = just_open.inject(open) { |a, e| a.merge(e => true) }
-    extra_flow = just_open.sum { valves[_1] }
-    next_flow = flow + extra_flow
-    next_pres = pres + flow + extra_flow
+    next_flow = flow + just_open.sum { valve_flow_rate[_1] }
+    next_pressure = pressure + next_flow
 
-    v = visited[next_valv]
-    next if v && v[:time] >= time - 1 && v[:flow] >= next_flow && v[:pres] >= next_pres
+    v = visited[next_valves]
+    next if v && v[:time] >= time - 1 && v[:flow] >= next_flow && v[:pressure] >= next_pressure
 
-    # p time - 1
-    # p next_valv
-    # p next_open
-    # p extra_flow
-    # gets
+    visited[next_valves] = { time: time - 1, flow: next_flow, pressure: next_pressure }
 
-    visited[next_valv] = { time: time - 1, flow: next_flow, pres: next_pres }
-
-    queue.push(valv: next_valv, time: time - 1, open: next_open, flow: next_flow, pres: next_pres)
+    queue.push(valves: next_valves, time: time - 1, open: next_open, flow: next_flow, pressure: next_pressure)
   end
 end
 
