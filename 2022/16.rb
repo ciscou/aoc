@@ -44,18 +44,19 @@ end
     available_moves = part == 2 ? available_moves.reduce(:product) : available_moves.first.map { [_1] }
 
     available_moves.each do |moves|
-      next_valves = moves.map { _1[:valve] }.sort
       just_open = moves.map { _1[:open] }.compact.uniq - open.keys
+
+      next_valves = moves.map { _1[:valve] }.sort
+      next_time = time - 1
       next_open = just_open.inject(open) { |a, e| a.merge(e => true) }
       next_flow = flow + just_open.sum { valve_flow_rate[_1] }
       next_pressure = pressure + next_flow
 
       v = visited[next_valves]
-      next if v && v[:time] >= time - 1 && v[:flow] >= next_flow && v[:pressure] >= next_pressure
+      next if v && v[:time] >= next_time && v[:flow] >= next_flow && v[:pressure] >= next_pressure
 
-      visited[next_valves] = { time: time - 1, flow: next_flow, pressure: next_pressure }
-
-      queue.push(valves: next_valves, time: time - 1, open: next_open, flow: next_flow, pressure: next_pressure)
+      visited[next_valves] = { time: next_time, flow: next_flow, pressure: next_pressure }
+      queue.push(valves: next_valves, time: next_time, open: next_open, flow: next_flow, pressure: next_pressure)
     end
   end
 
