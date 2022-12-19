@@ -1,3 +1,6 @@
+# basically stolen from https://nickymeuleman.netlify.app/garden/aoc2022-day19
+# https://github.com/NickyMeuleman/scrapyard/blob/main/advent_of_code/2022/src/day_19.rs
+
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
 blueprints = INPUT.map do |line|
@@ -12,7 +15,7 @@ blueprints = INPUT.map do |line|
   }
 end
 
-def max_geodes(blueprint)
+def max_geodes(blueprint, start_time)
   res = 0
 
   max_robots = Hash.new(0)
@@ -25,7 +28,6 @@ def max_geodes(blueprint)
 
   start_robots = { ore: 1, clay: 0, obsidian: 0, geode: 0 }
   start_materials = { ore: 0, clay: 0, obsidian: 0, geode: 0 }
-  start_time = 24
   start_state = { robots: start_robots, materials: start_materials, time: start_time }
 
   queue = []
@@ -37,6 +39,7 @@ def max_geodes(blueprint)
     robots, materials, time = state.values_at(:robots, :materials, :time)
 
     next if time < 1
+    next if (time * (time - 1)) / 2 + materials[:geode] + time * robots[:geode] < res
 
     res = [res, materials[:geode] + time * robots[:geode]].max
 
@@ -76,13 +79,17 @@ def max_geodes(blueprint)
     end
   end
 
-  p res
-
   res
 end
 
 part1 = blueprints.map.with_index do |blueprint, i|
-  max_geodes(blueprint) * (i + 1)
+  max_geodes(blueprint, 24) * (i + 1)
 end.sum
 
 puts part1
+
+part2 = blueprints.first(3).map do |blueprint|
+  max_geodes(blueprint, 32)
+end.reduce(:*)
+
+puts part2
