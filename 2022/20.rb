@@ -23,7 +23,9 @@ class CircularArray
     entry = @ary[idx]
 
     d = entry[0] <=> 0
-    entry[0].abs.times do
+    moves = entry[0].abs
+    moves = moves.divmod(@size).sum while moves > @size
+    moves.times do
       next_idx = idx + d
       swap(idx, next_idx)
       idx = next_idx
@@ -42,22 +44,18 @@ end
 
 numbers = INPUT.map(&:to_i)
 
-ca = CircularArray.new(numbers.length)
-numbers.each_with_index do |n, i|
-  ca[i] = [n, i]
-end
-numbers.length.times do |i|
-  ca.move(i)
-end
-puts ca.solution
-
-ca = CircularArray.new(numbers.length)
-numbers.each_with_index do |n, i|
-  ca[i] = [n * 811589153, i]
-end
-10.times do
-  numbers.length.times do |i|
-    ca.move(i)
+[
+  { decryption_key: 1, rounds: 1 },
+  { decryption_key: 811589153, rounds: 10 },
+].each do |config|
+  ca = CircularArray.new(numbers.length)
+  numbers.each_with_index do |n, i|
+    ca[i] = [n * config[:decryption_key], i]
   end
+  config[:rounds].times do
+    numbers.length.times do |i|
+      ca.move(i)
+    end
+  end
+  puts ca.solution
 end
-puts ca.solution
