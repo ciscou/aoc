@@ -54,13 +54,7 @@ void move(int original_idx) {
     d = -1;
   }
 
-  long moves = abs(number);
-  while(moves > length) {
-    long p = moves / length;
-    long q = moves % length;
-
-    moves = p + q;
-  }
+  long moves = abs(number) % (length - 1);
 
   for(int i=0; i<moves; i++) {
     int next_idx = idx + d;

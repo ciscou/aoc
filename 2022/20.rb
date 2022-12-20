@@ -23,8 +23,7 @@ class CircularArray
     entry = @ary[idx]
 
     d = entry[0] <=> 0
-    moves = entry[0].abs
-    moves = moves.divmod(@size).sum while moves > @size
+    moves = entry[0].abs % (@size - 1)
     moves.times do
       next_idx = idx + d
       swap(idx, next_idx)
