@@ -1,60 +1,106 @@
 INPUT = File.readlines('20.txt', chomp: true)
 
-class CircularArray
-  def initialize(size)
-    @size = size
-    @ary = Array.new(size, 0)
+class DoubleLinkedList
+  include Enumerable
+
+  Node = Struct.new(:key, :val, :next, :prev)
+
+  def initialize()
+    @head = Node.new
+    @tail = Node.new
+    @head.next = @tail
+    @tail.prev = @head
   end
 
-  def [](idx)
-    @ary[idx % @size]
+  def head
+    @head.next
   end
 
-  def []=(idx, val)
-    @ary[idx % @size] = val
+  def tail
+    @tail.prev
   end
 
-  def swap(idx1, idx2)
-    self[idx1], self[idx2] = self[idx2], self[idx1]
+  def delete(entry)
+    entry.prev.next = entry.next
+    entry.next.prev = entry.prev
   end
 
-  def move(initial_position)
-    idx = @ary.map(&:last).index(initial_position)
-    entry = @ary[idx]
+  def insert_before(node, entry)
+    entry.next = node
+    entry.prev = node.prev
+    node.prev = entry
+    entry.prev.next = entry
+  end
 
-    d = entry[0] <=> 0
-    moves = entry[0].abs % (@size - 1)
-    moves.times do
-      next_idx = idx + d
-      swap(idx, next_idx)
-      idx = next_idx
+  def insert_after(node, entry)
+    entry.prev = node
+    entry.next = node.next
+    node.next = entry
+    entry.next.prev = entry
+  end
+
+  def prepend(entry)
+    insert_after(@tail, entry)
+  end
+
+  def append(entry)
+    insert_before(@tail, entry)
+  end
+
+  def each
+    node = head
+
+    until node.next.nil?
+      yield node
+      node = node.next
     end
   end
-
-  def solution
-    idx0 = @ary.map(&:first).index(0)
-    [1_000, 2_000, 3_000].sum { self[_1 + idx0][0] }
-  end
-
-  def inspect
-    @ary.map(&:first).inspect
-  end
 end
-
-numbers = INPUT.map(&:to_i)
 
 [
   { decryption_key: 1, rounds: 1 },
   { decryption_key: 811589153, rounds: 10 },
 ].each do |config|
-  ca = CircularArray.new(numbers.length)
-  numbers.each_with_index do |n, i|
-    ca[i] = [n * config[:decryption_key], i]
-  end
+  numbers = INPUT.map.with_index { DoubleLinkedList::Node.new(_2, _1.to_i * config[:decryption_key]) }
+
+  list = DoubleLinkedList.new
+  numbers.each { list.append(_1) }
+
   config[:rounds].times do
-    numbers.length.times do |i|
-      ca.move(i)
+    numbers.each do |number|
+      moves = number.val % (numbers.length - 1)
+
+      next if moves == 0
+
+      list.delete(number)
+
+      if moves > 0
+        insert_after = number
+        moves.times do
+          insert_after = insert_after.next
+          insert_after = list.head if insert_after.next.nil?
+        end
+        list.insert_after(insert_after, number)
+      else
+        insert_before = number
+        moves.times do
+          insert_before = insert_before.prev
+          insert_before = list.tail if insert_before.prev.nil?
+        end
+        list.insert_before(insert_before, number)
+      end
     end
   end
-  puts ca.solution
+
+  res = 0
+  node = list.detect { _1.val == 0 }
+  3.times do
+    1000.times do
+      node = node.next
+      node = list.head if node.next.nil?
+    end
+
+    res += node.val
+  end
+  puts res
 end
