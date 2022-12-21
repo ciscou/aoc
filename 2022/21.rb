@@ -14,8 +14,6 @@ MONKEYS = INPUT.inject({}) do |monkeys, line|
           { op: :mul, dependencies: [$1, $2] }
         when /\A(\w+) \/ (\w+)\z/
           { op: :div, dependencies: [$1, $2] }
-        else
-          unreachable
         end
 
   monkeys.merge(id => job)
@@ -26,20 +24,13 @@ def monkey_number(monkey_id)
 
   return monkey[:number] if monkey[:op] == :number
 
-  op, dependencies = monkey[:op], monkey[:dependencies]
-  dep1, dep2 = dependencies
+  n1, n2 = monkey[:dependencies].map { monkey_number(_1) }
 
-  case op
-  when :add
-    monkey_number(dep1) + monkey_number(dep2)
-  when :sub
-    monkey_number(dep1) - monkey_number(dep2)
-  when :mul
-    monkey_number(dep1) * monkey_number(dep2)
-  when :div
-    monkey_number(dep1) / monkey_number(dep2)
-  else
-    unreachable
+  case monkey[:op]
+  when :add then n1 + n2
+  when :sub then n1 - n2
+  when :mul then n1 * n2
+  when :div then n1 / n2
   end
 end
 
@@ -51,6 +42,6 @@ root = MONKEYS["root"]
 dep1, dep2 = root[:dependencies]
 part2 = (1_000_000_000..1_000_000_000_000_000).bsearch do |humn_number|
   humn[:number] = humn_number
-  monkey_number(dep2) >= monkey_number(dep1)
+  monkey_number(dep1) <=> monkey_number(dep2)
 end
 puts part2
