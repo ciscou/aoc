@@ -40,9 +40,9 @@ def calculate_blizzards_by_pos(min)
   BLIZZARDS_BY_POS_CACHE[min % CYCLE] = blizzards_by_pos
 end
 
-def part1
+def run(from, to, min)
   queue = []
-  queue << { pos: [-1, 0], min: 0 }
+  queue << { pos: from, min: min }
 
   visited = {}
 
@@ -52,10 +52,10 @@ def part1
     pos, min = node.values_at(:pos, :min)
     row, col = pos
 
+    return min if [row, col] == to
+
     next if visited[[row, col, min % CYCLE]]
     visited[[row, col, min % CYCLE]] = true
-
-    return min if row == HEIGHT && col == WIDTH - 1
 
     blizzards_by_pos = calculate_blizzards_by_pos(min)
 
@@ -84,4 +84,10 @@ def part1
   -1
 end
 
+part1 = run([-1, 0], [HEIGHT, WIDTH - 1], 0)
 puts part1
+
+part2 = part1
+part2 = run([HEIGHT, WIDTH - 1], [-1, 0], part2)
+part2 = run([-1, 0], [HEIGHT, WIDTH - 1], part2)
+puts part2
