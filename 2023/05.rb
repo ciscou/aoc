@@ -10,6 +10,10 @@ temperature_to_humidity = []
 humidity_to_location = []
 current_map = nil
 
+def build_range(start, length)
+  start..(start + length - 1)
+end
+
 INPUT.each do |line|
   next if line.empty?
 
@@ -31,13 +35,11 @@ INPUT.each do |line|
     current_map = humidity_to_location
   else
     destination_start, source_start, length = line.split.map(&:to_i)
-    destination_end = destination_start + length - 1
-    source_end = source_start + length - 1
-    current_map << { destination: destination_start..destination_end, source: source_start..source_end }
+    current_map << { destination: build_range(destination_start, length), source: build_range(source_start, length) }
   end
 end
 
-def kk(maps, source)
+def corresponding(maps, source)
   maps.each do |map|
     if map[:source].cover?(source)
       return map[:destination].begin + source - map[:source].begin
@@ -47,18 +49,36 @@ def kk(maps, source)
   source
 end
 
-seed_to_location = {}
+part1 = Float::INFINITY
 
 seeds.each do |seed|
-  soil = kk(seed_to_soil, seed)
-  fertilizer = kk(soil_to_fertilizer, soil)
-  water = kk(fertilizer_to_water, fertilizer)
-  light = kk(water_to_light, water)
-  temperature = kk(light_to_temperature, light)
-  humidity = kk(temperature_to_humidity, temperature)
-  location = kk(humidity_to_location, humidity)
+  soil = corresponding(seed_to_soil, seed)
+  fertilizer = corresponding(soil_to_fertilizer, soil)
+  water = corresponding(fertilizer_to_water, fertilizer)
+  light = corresponding(water_to_light, water)
+  temperature = corresponding(light_to_temperature, light)
+  humidity = corresponding(temperature_to_humidity, temperature)
+  location = corresponding(humidity_to_location, humidity)
 
-  seed_to_location[seed] = location
+  part1 = [location, part1].min
 end
 
-puts seed_to_location.values.min
+puts part1
+
+part2 = Float::INFINITY
+
+seeds.each_slice(2) do |seed_range|
+  build_range(seed_range.first, seed_range.last).each do |seed|
+    soil = corresponding(seed_to_soil, seed)
+    fertilizer = corresponding(soil_to_fertilizer, soil)
+    water = corresponding(fertilizer_to_water, fertilizer)
+    light = corresponding(water_to_light, water)
+    temperature = corresponding(light_to_temperature, light)
+    humidity = corresponding(temperature_to_humidity, temperature)
+    location = corresponding(humidity_to_location, humidity)
+
+    part2 = [location, part2].min
+  end
+end
+
+puts part2
