@@ -5,31 +5,48 @@ rows_and_groups = INPUT.map do |line|
   { row: row, groups: groups.split(",").map(&:to_i) }
 end
 
-def possible_arrangements(row, groups)
-  orig_row = row
-  orig_groups = groups
-
-  return 1 if groups.empty? # TODO: make sure there are no ? in row? make sure row matches original groups?
-
-  while !row.empty? && !row.start_with?("?") && !row.start_with?("#")
-    row = row[1..-1]
+def possible_arrangements(row, groups, row_offset, groups_offset)
+  if groups_offset == groups.length # TODO: make sure there are no ? in row? make sure row matches original groups?
+    p [row, groups]
+    if row[row_offset..].include?("#")
+      return 0
+    else
+      return 1
+    end
   end
 
-  return 0 unless row.start_with?("?") || row.start_with?("#") # TODO: redundant with condition below?
+  while row_offset < row.length && row[row_offset] == "."
+    row_offset += 1
+  end
 
-  group = groups.first
+  group = groups[groups_offset]
 
-  branch1 = case row[0]
+  # try to skip this question mark
+  branch1 = case row[row_offset]
             when "?"
-              possible_arrangements(row[1..-1], groups)
+              row[row_offset] = "."
+              res = possible_arrangements(row, groups, row_offset + 1, groups_offset)
+              row[row_offset] = "?"
+              res
             else
               0
             end
-  branch2 = case row[0, group].gsub("?", "#") + (row[group, 1] || "").gsub("?", ".")
+  # try to add next group right here
+  prefix = row[row_offset, group]
+  suffix = row[row_offset + group, 1]
+  branch2 = case prefix.gsub("?", "#") + (suffix || "").gsub("?", ".")
             when "#" * group # EOS
-              possible_arrangements("", groups[1..-1])
+              row[row_offset, group] = "#" * group
+              res = possible_arrangements(row, groups, row_offset + group, groups_offset + 1)
+              row[row_offset, group] = prefix
+              res
             when "#" * group + "."
-              possible_arrangements(row[(group + 1)..-1], groups[1..-1])
+              row[row_offset, group] = "#" * group
+              row[row_offset + group, 1] = "."
+              res = possible_arrangements(row, groups, row_offset + group + 1, groups_offset + 1)
+              row[row_offset, group] = prefix
+              row[row_offset + group, 1] = suffix
+              res
             else
               0
             end
@@ -39,10 +56,9 @@ end
 
 part1 = 0
 rows_and_groups.each do |row_and_groups|
-  kk = possible_arrangements(row_and_groups[:row], row_and_groups[:groups])
   p row_and_groups
+  kk = possible_arrangements(row_and_groups[:row], row_and_groups[:groups], 0, 0)
   puts kk
-  gets
   part1 += kk
 end
 puts part1
