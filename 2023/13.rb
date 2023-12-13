@@ -20,6 +20,63 @@ class Grid
     nrows.times.map { @cells[[_1, c]] }
   end
 
+  def row_mirror
+    (1..(nrows - 1)).each do |row|
+      next if row == @row_mirror_was
+
+      next unless row.times.all? do |r|
+        mirror = row + row - r - 1
+
+        next true unless mirror < nrows
+        row(r) == row(mirror)
+      end
+
+      return row
+    end
+
+    nil
+  end
+
+  def col_mirror
+    (1..(ncols - 1)).each do |col|
+      next if col == @col_mirror_was
+
+      next unless col.times.all? do |c|
+        mirror = col + col - c - 1
+
+        next true unless mirror < ncols
+        col(c) == col(mirror)
+      end
+
+      return col
+    end
+
+    nil
+  end
+
+  def toggle!(row, col)
+    if @cells[[row, col]] == "#"
+      @cells[[row, col]] = "."
+    else
+      @cells[[row, col]] = "#"
+    end
+  end
+
+  def find_smudge!
+    @row_mirror_was = row_mirror
+    @col_mirror_was = col_mirror
+
+    nrows.times do |row|
+      ncols.times do |col|
+        toggle!(row, col)
+        return if row_mirror || col_mirror
+        toggle!(row, col)
+      end
+    end
+
+    raise "uh oh..."
+  end
+
   attr_reader :nrows, :ncols
 end
 
@@ -29,26 +86,22 @@ end
 
 part1 = 0
 grids.each do |grid|
-  (1..(grid.ncols - 1)).each do |col|
-    next unless col.times.all? do |c|
-      mirror = col + col - c - 1
+  col = grid.col_mirror
+  part1 += col if col
 
-      next true unless mirror < grid.ncols
-      grid.col(c) == grid.col(mirror)
-    end
-
-    part1 += col
-  end
-
-  (1..(grid.nrows - 1)).each do |row|
-    next unless row.times.all? do |r|
-      mirror = row + row - r - 1
-
-      next true unless mirror < grid.nrows
-      grid.row(r) == grid.row(mirror)
-    end
-
-    part1 += row * 100
-  end
+  row = grid.row_mirror
+  part1 += row * 100 if row
 end
 puts part1
+
+grids.each(&:find_smudge!)
+
+part2 = 0
+grids.each do |grid|
+  col = grid.col_mirror
+  part2 += col if col
+
+  row = grid.row_mirror
+  part2 += row * 100 if row
+end
+puts part2
