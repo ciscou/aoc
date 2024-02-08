@@ -33,8 +33,10 @@ broadcaster = modules["broadcaster"]
 
 low_pulses = 0
 high_pulses = 0
+button_presses = 0
 
-1_000.times do
+loop do
+  button_presses += 1
   queue = []
 
   low_pulses += 1 # button to broadcaster
@@ -47,6 +49,10 @@ high_pulses = 0
     pulse = queue.shift
 
     source, pulse, destination = pulse
+
+    p [button_presses, source, pulse, destination] if pulse && destination == "qb"
+
+    raise [button_presses, source, pulse, destination].inspect if destination == "rx" && !pulse
 
     if pulse
       high_pulses += 1
