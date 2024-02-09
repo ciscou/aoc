@@ -1,105 +1,48 @@
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
+minrow, mincol, maxrow, maxcol = Float::INFINITY, Float::INFINITY, -Float::INFINITY, -Float::INFINITY
 row, col = 0, 0
 
-grid = {}
-grid[[row, col]] = true
-rightmost_wall = Hash.new(-Float::INFINITY)
+rows = Hash.new { |h, k| h[k] = [] }
 
 INPUT.each do |line|
   dir, steps, _color = line.split
   steps = steps.to_i
 
-  steps.times do
-    case dir
-    when "R"
-      col += 1
-    when "L"
-      col -= 1
-    when "U"
+  case dir
+  when "U"
+    steps.times do
       row -= 1
-    when "D"
+      rows[row] << (col..col)
+    end
+  when "D"
+    steps.times do
       row += 1
-    else
-      raise "invalid dir #{dir.inspect}"
+      rows[row] << (col..col)
     end
-
-    grid[[row, col]] = true
-    rightmost_wall[row] = [rightmost_wall[row], col].max
+  when "L"
+    rows[row] << ((col - steps)..col)
+    col -= steps
+  when "R"
+    rows[row] << (col..(col + steps))
+    col += steps
+  else
+    raise "invalid dir #{dir.inspect}"
   end
-end
 
-minrow, maxrow = grid.keys.map(&:first).minmax
-mincol, maxcol = grid.keys.map(&:last).minmax
+  minrow = [minrow, row].min
+  mincol = [mincol, col].min
+  maxrow = [maxrow, row].max
+  maxcol = [maxcol, col].max
+end
 
 (minrow..maxrow).each do |row|
   (mincol..maxcol).each do |col|
-    if grid[[row, col]]
-      if row == 0 && col == 0
-        print "@"
-      else
-        print "#"
-      end
+    if rows[row].any? { _1.include?(col) }
+      print "#"
     else
       print "."
     end
   end
   puts
 end
-
-def floodfill(grid, row, col)
-  return if grid[[row, col]]
-
-  grid[[row, col]] = true
-
-  floodfill(grid, row-1, col)
-  floodfill(grid, row+1, col)
-  floodfill(grid, row, col-1)
-  floodfill(grid, row, col+1)
-end
-
-puts
-puts
-puts
-
-if false
-(minrow..maxrow).each do |row|
-  inside = false
-  wall = false
-
-  (mincol..maxcol).each do |col|
-    if grid[[row, col]]
-      inside = !inside unless wall
-      wall = true
-    else
-      if inside
-        grid[[row, col]] = true if rightmost_wall[row] > col
-      end
-      wall = false
-    end
-  end
-end
-end
-
-floodfill(grid, 1, 1)
-
-(minrow..maxrow).each do |row|
-  (mincol..maxcol).each do |col|
-    if grid[[row, col]]
-      if row == 0 && col == 0
-        print "@"
-      else
-        print "#"
-      end
-    else
-      print "."
-    end
-  end
-  puts
-end
-
-puts
-puts
-puts
-
-puts grid.size
