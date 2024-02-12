@@ -20,6 +20,25 @@ def overlaps?(cube1, cube2)
   true
 end
 
+def chain_reaction(supported_by, i)
+  supported_by = Hash[supported_by.map { [_1, _2.dup] }]
+  delete = Set.new
+  delete.add(i)
+  loop do
+    changed = false
+    supported_by.values.each do |v|
+      delete.each do |j|
+        changed ||= v.delete(j)
+      end
+    end
+    supported_by.each do |k, v|
+      delete.add k if v.empty?
+    end
+    break unless changed
+  end
+  supported_by.values.count(&:empty?)
+end
+
 cubes = INPUT.map do |line|
   c1, c2 = line.split("~")
   [c1, c2].map { _1.split(",").map(&:to_i) }
@@ -59,10 +78,17 @@ cubes.each_with_index do |cube, i|
   cube[1][2] += 1
 end
 
-part1 = 0
+# part1 = 0
+# cubes.each_with_index do |cube, i|
+  # part1 += 1 if supported_by.values.all? do |supported|
+    # supported.length > 1 || !supported.include?(i)
+  # end
+# end
+# puts part1
+
+part2 = 0
 cubes.each_with_index do |cube, i|
-  part1 += 1 if supported_by.values.all? do |supported|
-    supported.length > 1 || !supported.include?(i)
-  end
+  puts i
+  part2 += chain_reaction(supported_by, i)
 end
-puts part1
+puts part2
