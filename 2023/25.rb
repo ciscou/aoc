@@ -41,15 +41,91 @@ adj.each do |k, v|
   v.each { intersections.push([k, _1]) }
 end
 
-intersections.combination(3) do |i1, i2, i3|
-  [i1, i2, i3].each do |i|
+class Tarjan
+  def initialize(nodes, adj)
+    @nodes = nodes.to_a
+    kk = Hash[@nodes.each_with_index.to_a]
+    @adj = []
+    @nodes.length.times { @adj << [] }
+    adj.each do |k, v|
+      v.each { @adj[kk[k]] << kk[_1] }
+    end
+    @visited = [false] * @nodes.length
+    @tin = [-1] * @nodes.length
+    @low = [-1] * @nodes.length
+    @timer = 0
+    @bridges = []
+  end
+
+  attr_reader :bridges
+
+  def run!
+    @nodes.each_with_index do |node, i|
+      dfs(i) unless @visited[i]
+    end
+    @bridges.each(&:sort!)
+    @bridges.sort!
+    @bridges.uniq!
+  end
+
+  private
+
+  def dfs(v, p=-1)
+    @visited[v] = true
+    @tin[v] = @low[v] = @timer
+    @timer += 1
+    @adj[v].each do |to|
+      next if to == p
+      if @visited[to]
+        @low[v] = [@low[v], @tin[to]].min
+      else
+        dfs(to, v)
+        @low[v] = [@low[v], @low[to]].min
+        if @low[to] > @tin[v]
+          @bridges << [@nodes[v], @nodes[to]]
+        end
+      end
+    end
+  end
+end
+
+intersections.each(&:sort!)
+intersections.sort!
+intersections.uniq!
+p nodes.size
+p intersections.size
+p intersections.combination(2).size
+i = 0
+# ex solution: ["bvb", "cmg"], ["hfx", "pzl"], ["jqt", "nvd"]
+sol = 0
+intersections.combination(2) do |i1, i2|
+  # i1 = ["hfx", "pzl"]
+  # i2 = ["jqt", "nvd"]
+  i += 1
+  p i if i % 1_000 == 0
+  [i1, i2].each do |i|
+    adj[i.first].delete(i.last)
+    adj[i.last].delete(i.first)
+  end
+  tarjan = Tarjan.new(nodes, adj)
+  tarjan.run!
+  next unless tarjan.bridges.length == 1
+  tarjan.bridges.each do |i|
     adj[i.first].delete(i.last)
     adj[i.last].delete(i.first)
   end
   g = n_groups(nodes.dup, adj)
-  p [i1, i2, i3, g] if g.size > 1
-  [i1, i2, i3].each do |i|
+  if g.size == 2
+    # p [i1, i2, tarjan.bridges.first, g]
+    sol = [sol, g.reduce(:*)].max
+  end
+  [i1, i2].each do |i|
+    adj[i.first].add(i.last)
+    adj[i.last].add(i.first)
+  end
+  tarjan.bridges.each do |i|
     adj[i.first].add(i.last)
     adj[i.last].add(i.first)
   end
 end
+puts sol
