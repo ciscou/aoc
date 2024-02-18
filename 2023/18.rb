@@ -1,48 +1,33 @@
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
-minrow, mincol, maxrow, maxcol = Float::INFINITY, Float::INFINITY, -Float::INFINITY, -Float::INFINITY
-row, col = 0, 0
-
-rows = Hash.new { |h, k| h[k] = [] }
+part2 = true
+pos = 0
+res = 1
 
 INPUT.each do |line|
-  dir, steps, _color = line.split
-  steps = steps.to_i
+  dir, steps, color = line.split
+  steps = steps.to_f
 
+  if part2
+    dir = { "0" => "R", "1" => "D", "2" => "L", "3" => "U" }.fetch(color[-2])
+    steps = color[2..-3].to_i(16).to_f
+  end
+
+  # stolen from https://www.reddit.com/r/adventofcode/comments/18l0qtr/comment/kdv18dn/
   case dir
   when "U"
-    steps.times do
-      row -= 1
-      rows[row] << (col..col)
-    end
+    pos += steps
+    res += steps / 2
   when "D"
-    steps.times do
-      row += 1
-      rows[row] << (col..col)
-    end
+    pos -= steps
+    res += steps / 2
   when "L"
-    rows[row] << ((col - steps)..col)
-    col -= steps
+    res += steps / 2 - steps * pos
   when "R"
-    rows[row] << (col..(col + steps))
-    col += steps
+    res += steps / 2 + steps * pos
   else
     raise "invalid dir #{dir.inspect}"
   end
-
-  minrow = [minrow, row].min
-  mincol = [mincol, col].min
-  maxrow = [maxrow, row].max
-  maxcol = [maxcol, col].max
 end
 
-(minrow..maxrow).each do |row|
-  (mincol..maxcol).each do |col|
-    if rows[row].any? { _1.include?(col) }
-      print "#"
-    else
-      print "."
-    end
-  end
-  puts
-end
+puts res
