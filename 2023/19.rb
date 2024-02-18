@@ -50,3 +50,59 @@ part1 = ratings.sum do |rating|
 end
 
 puts part1
+
+def part2_helper(name, x_range, m_range, a_range, s_range)
+  ranges = {
+    "x" => x_range,
+    "m" => m_range,
+    "a" => a_range,
+    "s" => s_range,
+  }
+
+  return 0 if name == "R"
+  return ranges.values.map(&:size).reduce(:*) if name == "A"
+
+  RULES[name].sum do |rule|
+    next_ranges = {
+      "x" => ranges["x"],
+      "m" => ranges["m"],
+      "a" => ranges["a"],
+      "s" => ranges["s"],
+    }
+    cond, workflow = rule.split(":")
+    if workflow
+      var = cond[0]
+      comp = cond[1]
+      val = cond[2..].to_i
+      case comp
+      when "<"
+        ranges[var] = ranges[var].begin..(val-1)
+        next_ranges[var] = val..next_ranges[var].end
+      when ">"
+        ranges[var] = (val+1)..ranges[var].end
+        next_ranges[var] = next_ranges[var].begin..val
+      else
+        raise "invalid comp #{comp.inspect}"
+      end
+      tmp = part2_helper(workflow, ranges["x"], ranges["m"], ranges["a"], ranges["s"])
+      ranges = next_ranges
+      tmp
+    else
+      part2_helper(cond, ranges["x"], ranges["m"], ranges["a"], ranges["s"])
+    end
+  end
+end
+
+RULES = {}
+
+INPUT.each do |line|
+  break if line.empty?
+
+  name, rules = line.split("{")
+  rules.delete_suffix!("}")
+  rules = rules.split(",")
+
+  RULES[name] = rules
+end
+
+puts part2_helper("in", 1..4000, 1..4000, 1..4000, 1..4000)
