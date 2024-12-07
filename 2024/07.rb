@@ -16,13 +16,13 @@ def has_solution?(solution, numbers)
     else
       q << [a + b, *rest]
       q << [a * b, *rest]
+      q << ["#{a}#{b}".to_i, *rest]
     end
   end
   false
 end
 
 part1 = equations.sum do |solution, numbers|
-  p [solution, numbers]
   if has_solution?(solution, numbers)
     solution
   else
