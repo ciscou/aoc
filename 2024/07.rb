@@ -5,7 +5,7 @@ equations = INPUT.map do |line|
   [a.to_i, b.split(" ").map(&:to_i)]
 end
 
-def has_solution?(solution, numbers)
+def has_solution?(solution, numbers, part2: false)
   q = []
   q << numbers
   until q.empty?
@@ -16,7 +16,7 @@ def has_solution?(solution, numbers)
     else
       q << [a + b, *rest]
       q << [a * b, *rest]
-      q << ["#{a}#{b}".to_i, *rest]
+      q << ["#{a}#{b}".to_i, *rest] if part2
     end
   end
   false
@@ -31,3 +31,13 @@ part1 = equations.sum do |solution, numbers|
 end
 
 puts part1
+
+part2 = equations.sum do |solution, numbers|
+  if has_solution?(solution, numbers, part2: true)
+    solution
+  else
+    0
+  end
+end
+
+puts part2
