@@ -28,7 +28,7 @@ def checksum(blocks)
   end
 end
 
-def part1
+def part1_blocks
   blocks = read_disk_map
 
   l = 0
@@ -48,10 +48,10 @@ def part1
     r -= 1
   end
 
-  checksum(blocks)
+  blocks
 end
 
-def part2
+def part2_blocks
   blocks = read_disk_map
 
   empty_space = []
@@ -59,38 +59,32 @@ def part2
   offset = 0
 
   blocks.chunk(&:itself).each do |metadata, chunk|
-    empty_space[offset] = { size: chunk.length } if metadata[:empty]
-    files[offset] = { offset: offset, size: chunk.length, file_id: metadata[:file_id] } if metadata[:file_id]
+    empty_space << { offset: offset, size: chunk.length } if metadata[:empty]
+    files << { offset: offset, size: chunk.length, file_id: metadata[:file_id] } if metadata[:file_id]
 
     offset += chunk.length
   end
 
   files.reverse.each do |file|
-    next if file.nil?
+    empty_block = empty_space.detect do |eb|
+      break unless eb[:offset] < file[:offset]
 
-    empty_offset = empty_space.index do |empty_block|
-      next if empty_block.nil?
-
-      empty_block[:size] >= file[:size]
+      eb[:size] >= file[:size]
     end
 
-    if empty_offset && empty_offset < file[:offset]
+    if empty_block
       file[:size].times do |i|
-        blocks[empty_offset + i] = blocks[file[:offset] + i]
+        blocks[empty_block[:offset] + i] = blocks[file[:offset] + i]
         blocks[file[:offset] + i] = { empty: true }
       end
 
-      extra_empty_space = empty_space[empty_offset][:size] - file[:size]
-      if extra_empty_space > 0
-        empty_space[empty_offset + file[:size]] = { size: extra_empty_space }
-      end
-
-      empty_space[empty_offset] = nil
+      empty_block[:offset] += file[:size]
+      empty_block[:size] -= file[:size]
     end
   end
 
-  checksum(blocks)
+  blocks
 end
 
-puts part1
-puts part2
+puts checksum(part1_blocks)
+puts checksum(part2_blocks)
