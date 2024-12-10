@@ -3,6 +3,7 @@ INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 grid = INPUT.map { |line| line.chars.map { _1 == "." ? -1 : _1.to_i } }
 
 part1 = 0
+part2 = 0
 grid.each_with_index do |row, trailhead_row|
   row.each_with_index do |cell, trailhead_col|
     if cell == 0
@@ -13,6 +14,7 @@ grid.each_with_index do |row, trailhead_row|
         curr_row, curr_col = stack.pop
         if grid[curr_row][curr_col] == 9
           nines.add [[curr_row, curr_col]]
+          part2 += 1
         else
           [
             [-1, 0],
@@ -36,3 +38,4 @@ grid.each_with_index do |row, trailhead_row|
   end
 end
 puts part1
+puts part2
