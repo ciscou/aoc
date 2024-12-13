@@ -10,21 +10,30 @@ machines = INPUT.chunk { _1.empty? && nil }.map do |_empty, machine_spec|
   }
 end
 
-part1 = 0
+def min_tokens(machines)
+  machines.sum do |machine|
+    ax, ay = machine[:button_a]
+    bx, by = machine[:button_b]
+    px, py = machine[:price]
 
-machines.each do |machine|
-  tokens = Float::INFINITY
+    # we're just solving a system of 2 eqs with 2 variables
 
-  101.times do |a|
-    101.times do |b|
-      if machine[:button_a][0] * a + machine[:button_b][0] * b == machine[:price][0] &&
-         machine[:button_a][1] * a + machine[:button_b][1] * b == machine[:price][1]
-        tokens = [tokens, 3 * a + b].min
-      end
-    end
+    pb, qb = (py * ax - px * ay).divmod(ax * by - ay * bx)
+
+    next 0 unless qb == 0
+
+    pa, qa = (px - bx * pb).divmod(ax)
+
+    next 0 unless qa == 0
+
+    pa * 3 + pb
   end
-
-  part1 += tokens if tokens.finite?
 end
 
-puts part1
+puts min_tokens(machines)
+
+machines.each do |machine|
+  machine[:price].map! { _1 + 10000000000000 }
+end
+
+puts min_tokens(machines)
