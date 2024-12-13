@@ -46,6 +46,7 @@ part2 = 0
 gardens.each do |garden|
   corners = 0
 
+  # inspired by https://www.youtube.com/watch?v=yxHSWwrq4JQ
   garden[:positions].each do |r, c|
     corners += 1 if !garden[:positions].include?([r-1, c]) && !garden[:positions].include?([r, c+1])
     corners += 1 if !garden[:positions].include?([r, c+1]) && !garden[:positions].include?([r+1, c])
