@@ -16,6 +16,7 @@ def dfs(grid, garden, gardens_by_pos, r, c)
 
   gardens_by_pos[[r, c]] = garden
   garden[:area] += 1
+  garden[:positions].add [r, c]
 
   garden[:perimeter] += 1 unless dfs(grid, garden, gardens_by_pos, r-1, c)
   garden[:perimeter] += 1 unless dfs(grid, garden, gardens_by_pos, r+1, c)
@@ -32,7 +33,7 @@ grid.each_with_index do |row, r|
   row.each_with_index do |cell, c|
     next if gardens_by_pos[[r][c]]
 
-    gardens << { letter: cell, area: 0, perimeter: 0 }
+    gardens << { letter: cell, area: 0, perimeter: 0, positions: Set.new }
 
     dfs(grid, gardens.last, gardens_by_pos, r, c)
   end
@@ -40,3 +41,23 @@ end
 
 part1 = gardens.sum { _1[:area] * _1[:perimeter] }
 puts part1
+
+part2 = 0
+gardens.each do |garden|
+  corners = 0
+
+  garden[:positions].each do |r, c|
+    corners += 1 if !garden[:positions].include?([r-1, c]) && !garden[:positions].include?([r, c+1])
+    corners += 1 if !garden[:positions].include?([r, c+1]) && !garden[:positions].include?([r+1, c])
+    corners += 1 if !garden[:positions].include?([r+1, c]) && !garden[:positions].include?([r, c-1])
+    corners += 1 if !garden[:positions].include?([r, c-1]) && !garden[:positions].include?([r-1, c])
+
+    corners += 1 if garden[:positions].include?([r-1, c]) && garden[:positions].include?([r, c+1]) && !garden[:positions].include?([r-1, c+1])
+    corners += 1 if garden[:positions].include?([r, c+1]) && garden[:positions].include?([r+1, c]) && !garden[:positions].include?([r+1, c+1])
+    corners += 1 if garden[:positions].include?([r+1, c]) && garden[:positions].include?([r, c-1]) && !garden[:positions].include?([r+1, c-1])
+    corners += 1 if garden[:positions].include?([r, c-1]) && garden[:positions].include?([r-1, c]) && !garden[:positions].include?([r-1, c-1])
+  end
+
+  part2 += garden[:area] * corners # number of sides == number of corners
+end
+puts part2
