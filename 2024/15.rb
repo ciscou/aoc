@@ -116,6 +116,9 @@ h.times do |r|
 end
 
 moves.each do |move|
+  puts grid.map(&:join)
+  puts
+
   if can_move?(grid, robot, move)
     move!(grid, robot, move)
     robot[0] += move[0]
