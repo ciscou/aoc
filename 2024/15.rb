@@ -29,35 +29,35 @@ h.times do |r|
   end
 end
 
-def try_to_move(grid, pos, move)
+def can_move?(grid, pos, move)
   r, c = pos
   dr, dc = move
   nr = r + dr
   nc = c + dc
 
-  raise "wtf am I supposed to move" if grid[r][c] == "."
-
   case grid[nr][nc]
   when "."
-    grid[r][c], grid[nr][nc] = grid[nr][nc], grid[r][c]
     true
   when "#"
     false
   when "O"
-    if try_to_move(grid, [nr, nc], move)
-      raise "wtf am I supposed to move this to" unless grid[nr][nc] == "."
-      grid[r][c], grid[nr][nc] = grid[nr][nc], grid[r][c]
-      true
-    else
-      false
-    end
-  else
-    raise "wtf is a #{grid[nr][nc]}"
+    can_move?(grid, [nr, nc], move)
   end
 end
 
+def move!(grid, pos, move)
+  r, c = pos
+  dr, dc = move
+  nr = r + dr
+  nc = c + dc
+
+  move!(grid, [nr, nc], move) unless grid[nr][nc] == "."
+  grid[r][c], grid[nr][nc] = grid[nr][nc], grid[r][c] 
+end
+
 moves.each do |move|
-  if try_to_move(grid, robot, move)
+  if can_move?(grid, robot, move)
+    move!(grid, robot, move)
     robot[0] += move[0]
     robot[1] += move[1]
   end
