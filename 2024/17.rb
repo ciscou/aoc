@@ -19,39 +19,53 @@ c = INPUT[2].split(": ").last.to_i
 
 program = INPUT[4].split(": ").last.split(",").map(&:to_i)
 
-pc = 0
+def execute(program, a, b, c)
+  pc = 0
 
-out = []
+  out = []
 
-loop do
-  break unless pc < program.length
+  loop do
+    break unless pc < program.length
 
-  literal = program[pc + 1]
-  combo = combo(literal, a, b, c)
+    literal = program[pc + 1]
+    combo = combo(literal, a, b, c)
 
-  case program[pc]
-  when 0 # adv
-    a = a / (2 ** combo)
-  when 1 # bxl
-    b = b ^ literal
-  when 2 # bst
-    b = combo(literal, a, b, c) % 8
-  when 3 # jnz
-    unless a == 0
-      pc = literal - 2
+    case program[pc]
+    when 0 # adv
+      a = a / (2 ** combo)
+    when 1 # bxl
+      b = b ^ literal
+    when 2 # bst
+      b = combo(literal, a, b, c) % 8
+    when 3 # jnz
+      unless a == 0
+        pc = literal - 2
+      end
+    when 4 # bxc
+      b = b ^ c
+    when 5 # out
+      out << combo % 8
+    when 6 # bdv
+      b = a / (2 ** combo)
+    when 7 # cdv
+      c = a / (2 ** combo)
     end
-  when 4 # bxc
-    b = b ^ c
-  when 5 # out
-    out << combo % 8
-  when 6 # bdv
-    b = a / (2 ** combo)
-  when 7 # cdv
-    c = a / (2 ** combo)
+
+    pc += 2
   end
 
-  pc += 2
+  out
 end
 
-part1 = out.join(",")
+part1 = execute(program, a, b, c).join(",")
 puts part1
+
+a = 1
+
+(1..program.length).each do |l|
+  a += 1 until execute(program, a, b, c).last(l) == program.last(l)
+  a *= 8
+end
+
+part2 = a / 8
+puts part2
