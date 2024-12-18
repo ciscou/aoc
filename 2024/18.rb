@@ -40,3 +40,11 @@ BYTES[0, 1024].each { |x, y| GRID[y][x] = "#" }
 
 part1 = bfs(0, 0, H-1, W-1)
 puts part1
+
+BYTES[1024..-1].each do |x, y|
+  GRID[y][x] = "#"
+  unless bfs(0, 0, H-1, W-1)
+    puts [x, y].join(",")
+    break
+  end
+end
