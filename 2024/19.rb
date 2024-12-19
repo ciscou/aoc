@@ -6,20 +6,25 @@ PATTERNS = INPUT[2..]
 def backtrack(pattern, offset, cache)
   return cache[offset] if cache.key?(offset)
 
-  return true if offset == pattern.length
+  if offset == pattern.length
+    cache[offset] = 1
+    return 1
+  end
+
+  res = 0
 
   TOWELS.each do |towel|
     next unless pattern[offset, towel.length] == towel
 
-    if backtrack(pattern, offset + towel.length, cache)
-      cache[offset] = true
-      return true
-    end
+    res += backtrack(pattern, offset + towel.length, cache)
   end
 
-  cache[offset] = false
-  false
+  cache[offset] = res
+  res
 end
 
-part1 = PATTERNS.count { backtrack(_1, 0, {}) }
+part1 = PATTERNS.count { backtrack(_1, 0, {}) > 0 }
 puts part1
+
+part2 = PATTERNS.sum { backtrack(_1, 0, {}) }
+puts part2
