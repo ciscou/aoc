@@ -56,33 +56,20 @@ end
 
 def cheats_from(sr, sc, limit)
   res = []
-  
-  q = []
-  q << [sr, sc, 0]
-  
-  v = Set.new
-  
-  until q.empty?
-    n = q.shift
-    row, col, dist = n
-  
-    next if row < 0
-    next if col < 0
-    next unless row < H
-    next unless col < W
-  
-    next if dist > limit
-  
-    next unless v.add?([row, col])
 
-    res << [row, col, dist] if GRID[row][col] == "."
-  
-    q << [row - 1, col, dist + 1]
-    q << [row + 1, col, dist + 1]
-    q << [row, col - 1, dist + 1]
-    q << [row, col + 1, dist + 1]
+  ((sr - limit)..(sr + limit)).each do |r|
+    next if r < 0
+    next unless r < H
+    dr = (r - sr).abs
+    max_dc = limit - dr
+    ((sc - max_dc)..(sc + max_dc)).each do |c|
+      next if c < 0
+      next unless c < W
+      dc = (c - sc).abs
+      res << [r, c, dr + dc]
+    end
   end
-  
+
   res
 end
 
