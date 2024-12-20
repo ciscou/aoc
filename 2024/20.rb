@@ -56,56 +56,34 @@ end
 
 def cheats_from(sr, sc, limit)
   res = []
+  
+  q = []
+  q << [sr, sc, 0]
+  
+  v = Set.new
+  
+  until q.empty?
+    n = q.shift
+    row, col, dist = n
+  
+    next if row < 0
+    next if col < 0
+    next unless row < H
+    next unless col < W
+  
+    next if dist > limit
+  
+    next unless v.add?([row, col])
 
-  ((sr-limit)..(sr+limit)).each do |r|
-    ((sc-limit)..(sc+limit)).each do |c|
-      dist = (r - sr).abs + (c - sc).abs
-      next unless dist <= limit
-      next if dist == 0
-
-      next if r < 0
-      next if c < 0
-      next unless r < H
-      next unless c < W
-      next unless GRID[r][c] == "."
-
-      res << [[r, c]] * dist
-    end
+    res << [row, col, dist] if GRID[row][col] == "."
+  
+    q << [row - 1, col, dist + 1]
+    q << [row + 1, col, dist + 1]
+    q << [row, col - 1, dist + 1]
+    q << [row, col + 1, dist + 1]
   end
-
-  return res
-
-  # Dunno why this doesn't work
-  # res = []
-  #
-  # q = []
-  # q << [sr, sc, []]
-  #
-  # v = Set.new
-  #
-  # until q.empty?
-  #   n = q.shift
-  #   row, col, path = n
-  #
-  #   next if row < 0
-  #   next if col < 0
-  #   next unless row < H
-  #   next unless col < W
-  #
-  #   next if path.length > limit
-  #
-  #   res << path if path.length >= 2 && GRID[row][col] == "." && path[0..-2].all? { |r, c| GRID[r][c] == "#" }
-  #   # next unless path.empty? || GRID[row][col] == "#"
-  #
-  #   next unless v.add?([row, col])
-  #
-  #   q << [row - 1, col, path + [[row - 1, col]]]
-  #   q << [row + 1, col, path + [[row + 1, col]]]
-  #   q << [row, col - 1, path + [[row, col - 1]]]
-  #   q << [row, col + 1, path + [[row, col + 1]]]
-  # end
-  #
-  # res
+  
+  res
 end
 
 bfs(start_row, start_col, DISTANCE_FROM_START)
@@ -119,13 +97,11 @@ def saves(limit, no_cheats)
       one = DISTANCE_FROM_START[sr][sc]
       next unless one
 
-      cheats_from(sr, sc, limit).each do |path|
-        er, ec = path.last
-
+      cheats_from(sr, sc, limit).each do |er, ec, dist|
         two = DISTANCE_TO_END[er][ec]
         next unless two
 
-        saves << no_cheats - (one + two + path.length)
+        saves << no_cheats - (one + two + dist)
       end
     end
   end
