@@ -3,6 +3,8 @@ INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 PanicAttack = Class.new(StandardError)
 
 class Keypad
+  attr_reader :key
+
   def left
     move(0, -1)
   end
@@ -49,7 +51,7 @@ class Keypad
     r += dr
     c += dc
     @key = key_at([r, c])
-    raise PanickAttack unless @key
+    raise PanicAttack unless @key
   end
 end
 
@@ -117,22 +119,67 @@ class DirKeypad < Keypad
   end
 end
 
-seqs = [
-  "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A",
-  "<v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A",
-  "<v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A",
-  "<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A",
-  "<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A",
-]
-
-seqs.each do |seq|
+def simulate(keys)
   num_keypad = NumKeypad.new
   dir_keypad_1 = DirKeypad.new(num_keypad)
   dir_keypad_2 = DirKeypad.new(dir_keypad_1)
   dir_keypad_3 = DirKeypad.new(dir_keypad_2)
 
-  seq.chars.each do |key|
+  keys.each do |key|
     dir_keypad_3.press(key)
   end
-  puts num_keypad.output
+
+  [
+    num_keypad.output,
+    [
+      num_keypad,
+      dir_keypad_1,
+      dir_keypad_2,
+      dir_keypad_3,
+    ].map(&:key),
+  ]
 end
+
+def bfs(code)
+  queue = []
+  queue << []
+
+  visited = Set.new
+
+  until queue.empty?
+    keys = queue.shift
+
+    # p keys.join
+
+    begin
+      prefix, current_keys = simulate(keys)
+
+      # puts prefix unless [nil, "3", "6", "9", "A"].include?(prefix[0])
+      # puts prefix unless prefix == "" || prefix == "A"
+
+      return keys if code == prefix
+
+      next unless code.start_with?(prefix)
+
+      next unless visited.add?([prefix, current_keys])
+
+      # p [code, prefix] unless prefix.empty?
+    rescue PanicAttack
+      next
+    end
+
+    ["A", "<", ">", "^", "v"].each do |key|
+      queue << keys + [key]
+    end
+  end
+end
+
+codes = INPUT
+
+part1 = 0
+codes.each do |code|
+  keys = bfs(code)
+  p keys.join
+  part1 += code.to_i * keys.length
+end
+puts part1
