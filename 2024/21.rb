@@ -119,28 +119,23 @@ class DirKeypad < Keypad
   end
 end
 
-def simulate(keys)
-  num_keypad = NumKeypad.new
-  dir_keypad_1 = DirKeypad.new(num_keypad)
-  dir_keypad_2 = DirKeypad.new(dir_keypad_1)
-  dir_keypad_3 = DirKeypad.new(dir_keypad_2)
+def simulate(keys, n)
+  keypads = [NumKeypad.new]
+  (n + 1).times do 
+    keypads << DirKeypad.new(keypads.last)
+  end
 
   keys.each do |key|
-    dir_keypad_3.press(key)
+    keypads.last.press(key)
   end
 
   [
-    num_keypad.output,
-    [
-      num_keypad,
-      dir_keypad_1,
-      dir_keypad_2,
-      dir_keypad_3,
-    ].map(&:key),
+    keypads.first.output,
+    keypads.map(&:key),
   ]
 end
 
-def bfs(code)
+def bfs(code, n)
   queue = []
   queue << []
 
@@ -152,7 +147,7 @@ def bfs(code)
     # p keys.join
 
     begin
-      prefix, current_keys = simulate(keys)
+      prefix, current_keys = simulate(keys, n)
 
       # puts prefix unless [nil, "3", "6", "9", "A"].include?(prefix[0])
       # puts prefix unless prefix == "" || prefix == "A"
@@ -178,8 +173,16 @@ codes = INPUT
 
 part1 = 0
 codes.each do |code|
-  keys = bfs(code)
+  keys = bfs(code, 2)
   p keys.join
   part1 += code.to_i * keys.length
 end
 puts part1
+
+part2 = 0
+codes.each do |code|
+  keys = bfs(code, 25)
+  p keys.join
+  part2 += code.to_i * keys.length
+end
+puts part2
