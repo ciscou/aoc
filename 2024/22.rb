@@ -19,7 +19,7 @@ secret_numbers = INPUT.map { [_1.to_i] }
   end
 end
 
-part1 = secret_numbers.map(&:last).sum
+part1 = secret_numbers.sum(&:last)
 puts part1
 
 secret_numbers.each do |ns|
@@ -28,31 +28,26 @@ end
 
 diffs = Set.new
 
-secret_numbers.each do |ns|
+profit_for_diff = secret_numbers.map do |ns|
+  h = {}
   ns.each_cons(5).each do |a, b, c, d, e|
-    diffs.add([b - a, c - b, d - c, e - d])
+    diff = [b - a, c - b, d - c, e - d]
+    diffs.add(diff)
+    h[diff] ||= e
   end
+  h
 end
 
 part2 = 0
 
-puts diffs.size
-
 diffs.each do |diff|
   profit = 0
 
-  secret_numbers.each do |ns|
-    ns.each_cons(5) do |a, b, c, d, e|
-      next unless diff == [b - a, c - b, d - c, e - d]
-
-      profit += e
-      break
-    end
+  profit_for_diff.each do |h|
+    profit += h[diff] || 0
   end
 
   part2 = [part2, profit].max
 end
 
 puts part2
-
-# TODO: use a hash (four hashes?) to keep track of the profit for each prefix / buyer
