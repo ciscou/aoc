@@ -169,15 +169,86 @@ def bfs(code, n)
   end
 end
 
+def combinations(keys, depth, key_pos, key_at)
+  return [keys] if depth == 0
+
+  prev_key = "A" # TODO: pass a prev_key param to the depth-1 calls?
+
+  first_r_then_c = []
+  first_c_then_r = []
+
+  keys.each do |key|
+    pr, pc = key_pos[prev_key] # prev position
+    cr, cc = key_pos[key]      # curr position
+
+    dr = cr - pr
+    dc = cc - pc
+
+    r = [dr < 0 ? "^" : "v"] * dr.abs
+    c = [dc < 0 ? "<" : ">"] * dc.abs
+
+    opt1 = r + c + ["A"]
+    opt2 = c + r + ["A"]
+
+    combinations(opt1, depth - 1, DirKeypad::KEY_POS, DirKeypad::KEY_AT).each do |comb|
+      first_r_then_c << comb
+    end
+
+    combinations(opt2, depth - 1, DirKeypad::KEY_POS, DirKeypad::KEY_AT).each do |comb|
+      first_c_then_r << comb
+    end
+
+    prev_key = key
+    # puts "#{"  " * depth} #{prev_key.inspect}"
+  end
+
+  ans = []
+
+  zip = first_r_then_c.zip(first_c_then_r)
+  zip.map!(&:uniq)
+  z, *ip = zip
+  z.product(*ip) do |a|
+    ans << a.flatten
+  end
+
+  puts "zip thingie"
+  puts "first_r_then_c"
+  p first_r_then_c
+  puts "first_c_then_r"
+  p first_c_then_r
+  puts "ans"
+  p ans
+  gets
+
+  ans
+end
+
 codes = INPUT
 
 part1 = 0
 codes.each do |code|
-  keys = bfs(code, 2)
+  combinations(code.chars, 3, NumKeypad::KEY_POS, NumKeypad::KEY_AT).sort_by(&:length).each do |comb|
+    simulate(comb, 2)
+    part1 += code.to_i * comb.length
+    # break
+  rescue PanicAttack
+    # next
+  end
+  puts
+end
+puts part1
+
+exit
+
+part1 = 0
+codes.each do |code|
+  keys = bfs(code, 0)
   p keys.join
   part1 += code.to_i * keys.length
 end
 puts part1
+
+exit
 
 part2 = 0
 codes.each do |code|
