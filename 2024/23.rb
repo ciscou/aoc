@@ -29,7 +29,7 @@ connections.each do |from, others|
   nodes = [from] + others.keys
 
   ((part2.length + 1)..nodes.length).each do |size|
-    nodes.combination(size).each do |set|
+    nodes.combination(size) do |set|
       next unless set.all? do |node|
         others = set - [node]
 
