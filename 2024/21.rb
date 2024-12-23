@@ -32,46 +32,34 @@ def calculate_paths(keypad_key_at, keypad_key_positions)
   paths = Hash.new { |h, k| h[k] = {} }
 
   keypad_key_positions.each do |k1, p1|
-    next if k1.nil?
+    r1, c1 = p1
 
     keypad_key_positions.each do |k2, p2|
-      next if k2.nil?
-
-      r1, c1 = p1
       r2, c2 = p2
 
       dr = r2 - r1
       dc = c2 - c1
 
-      r = dr < 0 ? "^" : "v"
-      c = dc < 0 ? "<" : ">"
+      r = [dr < 0 ? -1 : 1, 0, dr < 0 ? "^" : "v"]
+      c = [0, dc < 0 ? -1 : 1, dc < 0 ? "<" : ">"]
 
-      first_r_then_c = ([r] * dr.abs) + ([c] * dc.abs) + ["A"]
-      first_c_then_r = ([c] * dc.abs) + ([r] * dr.abs) + ["A"]
+      first_r_then_c = ([r] * dr.abs) + ([c] * dc.abs)
+      first_c_then_r = ([c] * dc.abs) + ([r] * dr.abs)
 
       paths[k1][k2] = [
         first_r_then_c,
         first_c_then_r,
       ].uniq.select do |path|
         r, c = r1, c1
-        valid = true
 
-        path.each do |dir|
-          next if dir == "A"
-
-          dr, dc = {
-            "^" => [-1,  0],
-            "v" => [ 1,  0],
-            "<" => [ 0, -1],
-            ">" => [ 0,  1],
-          }.fetch(dir)
+        path.none? do |dr, dc, _key|
           r += dr
           c += dc
 
-          valid = false if keypad_key_at[r][c].nil?
+          keypad_key_at[r][c].nil?
         end
-
-        valid
+      end.map do |path|
+        path.map { |_dr, _dc, key| key } + ["A"]
       end
     end
   end
