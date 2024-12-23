@@ -1,259 +1,117 @@
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
-PanicAttack = Class.new(StandardError)
+# highly inspired by https://github.com/mattbillenstein/aoc/blob/main/2024/21/p.py and others
+#
+numeric_keypad = [
+  ["7", "8", "9"],
+  ["4", "5", "6"],
+  ["1", "2", "3"],
+  [nil, "0", "A"],
+]
 
-class Keypad
-  attr_reader :key
+directional_keypad = [
+  [nil, "^", "A"],
+  ["<", "v", ">"],
+]
 
-  def left
-    move(0, -1)
+def key_positions(keypad)
+  positions = {}
+  keypad.each_with_index do |row, r|
+    row.each_with_index do |cell, c|
+      positions[cell] = [r, c]
+    end
   end
+  positions
+end
 
-  def right
-    move(0, 1)
-  end
+numeric_keypad_key_position = key_positions(numeric_keypad)
 
-  def up
-    move(-1, 0)
-  end
+directional_keypad_key_position = key_positions(directional_keypad)
 
-  def down
-    move(1, 0)
-  end
+def calculate_paths(keypad_key_at, keypad_key_positions)
+  paths = Hash.new { |h, k| h[k] = {} }
 
-  def press(key = nil)
-    @key = key unless key.nil?
+  keypad_key_positions.each do |k1, p1|
+    next if k1.nil?
 
-    if @controls
-      case @key
-      when "<"
-        @controls.left
-      when ">"
-        @controls.right
-      when "^"
-        @controls.up
-      when "v"
-        @controls.down
-      when "A"
-        @controls.press
-      else
-        raise "unexpected key #{@key.inspect}"
+    keypad_key_positions.each do |k2, p2|
+      next if k2.nil?
+
+      r1, c1 = p1
+      r2, c2 = p2
+
+      dr = r2 - r1
+      dc = c2 - c1
+
+      r = dr < 0 ? "^" : "v"
+      c = dc < 0 ? "<" : ">"
+
+      first_r_then_c = ([r] * dr.abs) + ([c] * dc.abs) + ["A"]
+      first_c_then_r = ([c] * dc.abs) + ([r] * dr.abs) + ["A"]
+
+      paths[k1][k2] = [
+        first_r_then_c,
+        first_c_then_r,
+      ].uniq.select do |path|
+        r, c = r1, c1
+        valid = true
+
+        path.each do |dir|
+          next if dir == "A"
+
+          dr, dc = {
+            "^" => [-1,  0],
+            "v" => [ 1,  0],
+            "<" => [ 0, -1],
+            ">" => [ 0,  1],
+          }.fetch(dir)
+          r += dr
+          c += dc
+
+          valid = false if keypad_key_at[r][c].nil?
+        end
+
+        valid
       end
-    else
-      @output << @key
     end
   end
 
-  private
-
-  def move(dr, dc)
-    r, c = key_pos(@key)
-    r += dr
-    c += dc
-    @key = key_at([r, c])
-    raise PanicAttack unless @key
-  end
+  paths
 end
 
-class NumKeypad < Keypad
-  KEY_POS = {
-    "7" => [0, 0],
-    "8" => [0, 1],
-    "9" => [0, 2],
-    "4" => [1, 0],
-    "5" => [1, 1],
-    "6" => [1, 2],
-    "1" => [2, 0],
-    "2" => [2, 1],
-    "3" => [2, 2],
-    nil => [3, 0],
-    "0" => [3, 1],
-    "A" => [3, 2],
-  }
+numeric_keypad_paths = calculate_paths(numeric_keypad, numeric_keypad_key_position)
+directional_keypad_paths = calculate_paths(directional_keypad, directional_keypad_key_position)
 
-  KEY_AT = KEY_POS.invert
+def helper(keys, depth, paths, directional_keypad_paths, cache)
+  return keys.length if depth == 0
 
-  def initialize
-    @key = "A"
-    @output = ""
-  end
+  return cache[[keys, depth]] if cache.key?([keys, depth])
 
-  attr_reader :output
-
-  private
-
-  def key_pos(key)
-    KEY_POS[key]
-  end
-
-  def key_at(pos)
-    KEY_AT[pos]
-  end
-end
-
-class DirKeypad < Keypad
-  KEY_POS = {
-    nil => [0, 0],
-    "^" => [0, 1],
-    "A" => [0, 2],
-    "<" => [1, 0],
-    "v" => [1, 1],
-    ">" => [1, 2],
-  }
-
-  KEY_AT = KEY_POS.invert
-
-  def initialize(controls)
-    @key = "A"
-    @controls = controls
-  end
-
-  private
-
-  def key_pos(key)
-    KEY_POS[key]
-  end
-
-  def key_at(pos)
-    KEY_AT[pos]
-  end
-end
-
-def simulate(keys, n)
-  keypads = [NumKeypad.new]
-  (n + 1).times do 
-    keypads << DirKeypad.new(keypads.last)
-  end
+  ans = 0
+  prev_key = "A"
 
   keys.each do |key|
-    keypads.last.press(key)
-  end
-
-  [
-    keypads.first.output,
-    keypads.map(&:key),
-  ]
-end
-
-def bfs(code, n)
-  queue = []
-  queue << []
-
-  visited = Set.new
-
-  until queue.empty?
-    keys = queue.shift
-
-    # p keys.join
-
-    begin
-      prefix, current_keys = simulate(keys, n)
-
-      # puts prefix unless [nil, "3", "6", "9", "A"].include?(prefix[0])
-      # puts prefix unless prefix == "" || prefix == "A"
-
-      return keys if code == prefix
-
-      next unless code.start_with?(prefix)
-
-      next unless visited.add?([prefix, current_keys])
-
-      # p [code, prefix] unless prefix.empty?
-    rescue PanicAttack
-      next
-    end
-
-    ["A", "<", ">", "^", "v"].each do |key|
-      queue << keys + [key]
-    end
-  end
-end
-
-def combinations(keys, depth, key_pos, key_at)
-  return [keys] if depth == 0
-
-  prev_key = "A" # TODO: pass a prev_key param to the depth-1 calls?
-
-  first_r_then_c = []
-  first_c_then_r = []
-
-  keys.each do |key|
-    pr, pc = key_pos[prev_key] # prev position
-    cr, cc = key_pos[key]      # curr position
-
-    dr = cr - pr
-    dc = cc - pc
-
-    r = [dr < 0 ? "^" : "v"] * dr.abs
-    c = [dc < 0 ? "<" : ">"] * dc.abs
-
-    opt1 = r + c + ["A"]
-    opt2 = c + r + ["A"]
-
-    combinations(opt1, depth - 1, DirKeypad::KEY_POS, DirKeypad::KEY_AT).each do |comb|
-      first_r_then_c << comb
-    end
-
-    combinations(opt2, depth - 1, DirKeypad::KEY_POS, DirKeypad::KEY_AT).each do |comb|
-      first_c_then_r << comb
-    end
-
+    ans += paths[prev_key][key].map do |path|
+      helper(path, depth - 1, directional_keypad_paths, directional_keypad_paths, cache)
+    end.min
     prev_key = key
-    # puts "#{"  " * depth} #{prev_key.inspect}"
   end
 
-  ans = []
+  cache[[keys, depth]] = ans
+end
 
-  zip = first_r_then_c.zip(first_c_then_r)
-  zip.map!(&:uniq)
-  z, *ip = zip
-  z.product(*ip) do |a|
-    ans << a.flatten
+def part(codes, depth, numeric_keypad_paths, directional_keypad_paths)
+  ans = 0
+
+  codes.each do |code|
+    ans += code.to_i * helper(code.chars, depth, numeric_keypad_paths, directional_keypad_paths, {})
   end
-
-  puts "zip thingie"
-  puts "first_r_then_c"
-  p first_r_then_c
-  puts "first_c_then_r"
-  p first_c_then_r
-  puts "ans"
-  p ans
-  gets
 
   ans
 end
 
-codes = INPUT
-
-part1 = 0
-codes.each do |code|
-  combinations(code.chars, 3, NumKeypad::KEY_POS, NumKeypad::KEY_AT).sort_by(&:length).each do |comb|
-    simulate(comb, 2)
-    part1 += code.to_i * comb.length
-    # break
-  rescue PanicAttack
-    # next
-  end
-  puts
-end
+part1 = part(INPUT, 3, numeric_keypad_paths, directional_keypad_paths)
 puts part1
 
-exit
-
-part1 = 0
-codes.each do |code|
-  keys = bfs(code, 0)
-  p keys.join
-  part1 += code.to_i * keys.length
-end
-puts part1
-
-exit
-
-part2 = 0
-codes.each do |code|
-  keys = bfs(code, 25)
-  p keys.join
-  part2 += code.to_i * keys.length
-end
+part2 = part(INPUT, 26, numeric_keypad_paths, directional_keypad_paths)
 puts part2
