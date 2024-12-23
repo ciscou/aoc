@@ -1,15 +1,15 @@
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
 # highly inspired by https://github.com/mattbillenstein/aoc/blob/main/2024/21/p.py and others
-#
-numeric_keypad = [
+
+NUMERIC_KEYPAD = [
   ["7", "8", "9"],
   ["4", "5", "6"],
   ["1", "2", "3"],
   [nil, "0", "A"],
 ]
 
-directional_keypad = [
+DIRECTIONAL_KEYPAD = [
   [nil, "^", "A"],
   ["<", "v", ">"],
 ]
@@ -24,9 +24,9 @@ def key_positions(keypad)
   positions
 end
 
-numeric_keypad_key_position = key_positions(numeric_keypad)
+NUMERIC_KEYPAD_KEY_POSITION = key_positions(NUMERIC_KEYPAD)
 
-directional_keypad_key_position = key_positions(directional_keypad)
+DIRECTIONAL_KEYPAD_KEY_POSITION = key_positions(DIRECTIONAL_KEYPAD)
 
 def calculate_paths(keypad_key_at, keypad_key_positions)
   paths = Hash.new { |h, k| h[k] = {} }
@@ -79,10 +79,10 @@ def calculate_paths(keypad_key_at, keypad_key_positions)
   paths
 end
 
-numeric_keypad_paths = calculate_paths(numeric_keypad, numeric_keypad_key_position)
-directional_keypad_paths = calculate_paths(directional_keypad, directional_keypad_key_position)
+NUMERIC_KEYPAD_PATHS = calculate_paths(NUMERIC_KEYPAD, NUMERIC_KEYPAD_KEY_POSITION)
+DIRECTIONAL_KEYPAD_PATHS = calculate_paths(DIRECTIONAL_KEYPAD, DIRECTIONAL_KEYPAD_KEY_POSITION)
 
-def helper(keys, depth, paths, directional_keypad_paths, cache)
+def helper(keys, depth, paths, cache)
   return keys.length if depth == 0
 
   return cache[[keys, depth]] if cache.key?([keys, depth])
@@ -92,7 +92,7 @@ def helper(keys, depth, paths, directional_keypad_paths, cache)
 
   keys.each do |key|
     ans += paths[prev_key][key].map do |path|
-      helper(path, depth - 1, directional_keypad_paths, directional_keypad_paths, cache)
+      helper(path, depth - 1, DIRECTIONAL_KEYPAD_PATHS, cache)
     end.min
     prev_key = key
   end
@@ -100,18 +100,18 @@ def helper(keys, depth, paths, directional_keypad_paths, cache)
   cache[[keys, depth]] = ans
 end
 
-def part(codes, depth, numeric_keypad_paths, directional_keypad_paths)
+def part(codes, depth)
   ans = 0
 
   codes.each do |code|
-    ans += code.to_i * helper(code.chars, depth, numeric_keypad_paths, directional_keypad_paths, {})
+    ans += code.to_i * helper(code.chars, depth, NUMERIC_KEYPAD_PATHS, {})
   end
 
   ans
 end
 
-part1 = part(INPUT, 3, numeric_keypad_paths, directional_keypad_paths)
+part1 = part(INPUT, 3)
 puts part1
 
-part2 = part(INPUT, 26, numeric_keypad_paths, directional_keypad_paths)
+part2 = part(INPUT, 26)
 puts part2
