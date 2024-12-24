@@ -14,12 +14,15 @@ class Wire
 end
 
 class Gate
-  def initialize(i1, i2)
-    @i1 = i1
-    @i2 = i2
+  def initialize(inputs)
+    @inputs = inputs
   end
 
-  attr_reader :i1, :i2
+  attr_reader :inputs
+
+  def input_names
+    inputs.map(&:name)
+  end
 
   def output
     return @output if instance_variable_defined?(:@output)
@@ -31,19 +34,23 @@ class AndGate < Gate
   private
 
   def calculate_output
-    @i1.value & @i2.value
+    @inputs.map(&:value).reduce(:&)
   end
 end
 
 class OrGate < Gate
+  private
+
   def calculate_output
-    @i1.value | @i2.value
+    @inputs.map(&:value).reduce(:|)
   end
 end
 
 class XorGate < Gate
+  private
+
   def calculate_output
-    @i1.value ^ @i2.value
+    @inputs.map(&:value).reduce(:^)
   end
 end
 
@@ -63,93 +70,72 @@ GATES = GATES_INPUT.map do |l|
   input1, op, input2 = input.split(" ")
   WIRES[output].gate = case op
   when "AND"
-    AndGate.new(WIRES[input1], WIRES[input2])
+    AndGate.new([WIRES[input1], WIRES[input2]])
   when "OR"
-    OrGate.new(WIRES[input1], WIRES[input2])
+    OrGate.new([WIRES[input1], WIRES[input2]])
   when "XOR"
-    XorGate.new(WIRES[input1], WIRES[input2])
+    XorGate.new([WIRES[input1], WIRES[input2]])
   else
     raise "invalid op #{op.inspect}"
   end
 end
 
 z_wires = WIRES.keys.grep(/^z/).sort.reverse
-z = WIRES.slice(*z_wires).map { |_k, v| v.value ? "1" : "0" }.join.to_i(2)
+z = z_wires.map { |w| WIRES[w].value ? "1" : "0" }.join.to_i(2)
 
 part1 = z
 puts part1
 
+def find_output_wire(klass, input_names, swaps)
+  input_names.map! { swaps.fetch(_1, _1) }.sort!
+
+  wire = WIRES.values.detect do |w|
+    next unless w.gate.is_a? klass
+    next unless w.gate.input_names.sort == input_names
+
+    true
+  end
+
+  return wire if wire
+
+  wire = WIRES.values.detect do |w|
+    next unless w.gate.is_a? klass
+    next unless input_names.any? { w.gate.input_names.include?(_1) }
+
+    true
+  end
+
+  missing_input_name = (input_names - wire.gate.input_names).first
+  extra_input_name = (wire.gate.input_names - input_names).first
+
+  swaps[missing_input_name] = extra_input_name
+  swaps[extra_input_name] = missing_input_name
+
+  wire
+end
+
+swaps = {}
 cout = nil
+
 45.times do |i|
-  x = "x#{i.to_s.rjust(2, "0")}"
-  y = "y#{i.to_s.rjust(2, "0")}"
   cin = cout
 
-  xor1 = WIRES.values.detect do |w|
-    next unless w.gate
-    next unless w.gate.class.name == "XorGate"
+  x = "x#{i.to_s.rjust(2, "0")}"
+  y = "y#{i.to_s.rjust(2, "0")}"
 
-    next unless [w.gate.i1.name, w.gate.i2.name].sort == [x, y].sort
+  xor1 = find_output_wire(XorGate, [x, y], swaps)
+  and1 = find_output_wire(AndGate, [x, y], swaps)
 
-    true
-  end
-
-  and1 = WIRES.values.detect do |w|
-    next unless w.gate
-    next unless w.gate.class.name == "AndGate"
-
-    next unless [w.gate.i1.name, w.gate.i2.name].sort == [x, y].sort
-
-    true
-  end
-
-  xor2 = nil
-  and2 = nil
-  cout = and1.name
+  cout = and1
 
   if cin
-    xor2 = WIRES.values.detect do |w|
-      next unless w.gate
-      next unless w.gate.class.name == "XorGate"
+    _xor2 = find_output_wire(XorGate, [xor1.name, cin.name], swaps)
+    and2 = find_output_wire(AndGate, [xor1.name, cin.name], swaps)
+    or1 = find_output_wire(OrGate, [and1.name, and2.name], swaps)
 
-      next unless [w.gate.i1.name, w.gate.i2.name].sort == [xor1.name, cin].sort
-
-      true
-    end
-
-    and2 = WIRES.values.detect do |w|
-      next unless w.gate
-      next unless w.gate.class.name == "AndGate"
-
-      xor1_name = xor1.name
-      cin = "fhc" if cin == "z06" # swap 1
-      xor1_name = "ggt" if xor1_name == "mwh" # swap 3
-
-      next unless [w.gate.i1.name, w.gate.i2.name].sort == [xor1_name, cin].sort
-
-      true
-    end
-
-    raise "cannot find and2 at index #{i} with inputs #{xor1.name}, #{cin}" unless and2
-
-    or1 = WIRES.values.detect do |w|
-      next unless w.gate
-      next unless w.gate.class.name == "OrGate"
-
-      and1_name = and1.name
-      and1_name = "mwh" if and1_name == "ggt" # swap 3
-      and1_name = "hqk" if and1_name == "z35" # swap 4
-
-      and2_name = and2.name
-      and2_name = "qhj" if and2_name == "z11" # swap 2
-
-      next unless [w.gate.i1.name, w.gate.i2.name].sort == [and1_name, and2_name].sort
-
-      true
-    end
-
-    raise "cannot find or1 at index #{i} with inputs #{and1.name}, #{and2.name}" unless or1
-
-    cout = or1.name
+    cout = or1
   end
 end
+
+part2 = swaps.keys.sort.join(",")
+puts part2
