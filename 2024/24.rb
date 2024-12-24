@@ -11,66 +11,39 @@ class Wire
     return @value if instance_variable_defined?(:@value)
     @value = @gate.output
   end
-
-  def reset_value
-    remove_instance_variable(:@value)
-  end
 end
 
-class AndGate
-  def initialize(i1, i2, o)
+class Gate
+  def initialize(i1, i2)
     @i1 = i1
     @i2 = i2
-    @o = o
   end
 
   attr_reader :i1, :i2
 
   def output
     return @output if instance_variable_defined?(:@output)
-    @output = @i1.value & @i2.value
-  end
-
-  def reset_output
-    remove_instance_variable(:@output)
+    @output = calculate_output
   end
 end
 
-class OrGate
-  def initialize(i1, i2, o)
-    @i1 = i1
-    @i2 = i2
-    @o = o
-  end
+class AndGate < Gate
+  private
 
-  attr_reader :i1, :i2
-
-  def output
-    return @output if instance_variable_defined?(:@output)
-    @output = @i1.value | @i2.value
-  end
-
-  def reset_output
-    remove_instance_variable(:@output)
+  def calculate_output
+    @i1.value & @i2.value
   end
 end
 
-class XorGate
-  def initialize(i1, i2, o)
-    @i1 = i1
-    @i2 = i2
-    @o = o
+class OrGate < Gate
+  def calculate_output
+    @i1.value | @i2.value
   end
+end
 
-  attr_reader :i1, :i2
-
-  def output
-    return @output if instance_variable_defined?(:@output)
-    @output = @i1.value ^ @i2.value
-  end
-
-  def reset_output
-    remove_instance_variable(:@output)
+class XorGate < Gate
+  def calculate_output
+    @i1.value ^ @i2.value
   end
 end
 
@@ -90,11 +63,11 @@ GATES = GATES_INPUT.map do |l|
   input1, op, input2 = input.split(" ")
   WIRES[output].gate = case op
   when "AND"
-    AndGate.new(WIRES[input1], WIRES[input2], WIRES[output])
+    AndGate.new(WIRES[input1], WIRES[input2])
   when "OR"
-    OrGate.new(WIRES[input1], WIRES[input2], WIRES[output])
+    OrGate.new(WIRES[input1], WIRES[input2])
   when "XOR"
-    XorGate.new(WIRES[input1], WIRES[input2], WIRES[output])
+    XorGate.new(WIRES[input1], WIRES[input2])
   else
     raise "invalid op #{op.inspect}"
   end
