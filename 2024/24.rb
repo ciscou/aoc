@@ -1,117 +1,106 @@
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
-class Wire
-  attr_accessor :name, :value, :gate
-
-  def initialize(name)
-    @name = name
+class Gate
+  def initialize(output_name, *input_names)
+    @output_name = output_name
+    @input_names = input_names
   end
 
-  def value
-    return @value if instance_variable_defined?(:@value)
-    @value = @gate.output
+  attr_reader :output_name, :input_names
+
+  private
+
+  def input_values
+    @input_names.map { GATES_BY_OUTPUT_NAME[_1].output_value }
   end
 end
 
-class Gate
-  def initialize(inputs)
-    @inputs = inputs
+class OneGate < Gate
+  def output_value
+    1
   end
+end
 
-  attr_reader :inputs
-
-  def input_names
-    inputs.map(&:name)
-  end
-
-  def output
-    return @output if instance_variable_defined?(:@output)
-    @output = calculate_output
+class ZeroGate < Gate
+  def output_value
+    0
   end
 end
 
 class AndGate < Gate
-  private
-
-  def calculate_output
-    @inputs.map(&:value).reduce(:&)
+  def output_value
+    input_values.reduce(:&)
   end
 end
 
 class OrGate < Gate
-  private
-
-  def calculate_output
-    @inputs.map(&:value).reduce(:|)
+  def output_value
+    input_values.reduce(:|)
   end
 end
 
 class XorGate < Gate
-  private
-
-  def calculate_output
-    @inputs.map(&:value).reduce(:^)
+  def output_value
+    input_values.reduce(:^)
   end
 end
 
 WIRES_INPUT, GATES_INPUT = INPUT.chunk { _1.empty? && nil }.map(&:last)
 
-WIRES = Hash.new { |h, k| h[k] = Wire.new(k) }
+GATES = [
+  WIRES_INPUT.map do |l|
+    name, value = l.split(": ")
 
-WIRES_INPUT.each_with_object(WIRES) do |l, h|
-  name, value = l.split(": ")
+    value.to_i == 1 ? OneGate.new(name) : ZeroGate.new(name)
+  end,
 
-  h[name].value = value.to_i == 1
-end
+  GATES_INPUT.map do |l|
+    input, output = l.split(" -> ")
+    input1, op, input2 = input.split(" ")
 
-GATES = GATES_INPUT.map do |l|
-  input, output = l.split(" -> ")
-
-  input1, op, input2 = input.split(" ")
-  WIRES[output].gate = case op
-  when "AND"
-    AndGate.new([WIRES[input1], WIRES[input2]])
-  when "OR"
-    OrGate.new([WIRES[input1], WIRES[input2]])
-  when "XOR"
-    XorGate.new([WIRES[input1], WIRES[input2]])
-  else
-    raise "invalid op #{op.inspect}"
+    case op
+    when "AND"
+      AndGate.new(output, input1, input2)
+    when "OR"
+      OrGate.new(output, input1, input2)
+    when "XOR"
+      XorGate.new(output, input1, input2)
+    else
+      raise "invalid op #{op.inspect}"
+    end
   end
+].flatten
+
+GATES_BY_OUTPUT_NAME = GATES.each_with_object({}) do |gate, h|
+  h[gate.output_name] = gate
 end
 
-z_wires = WIRES.keys.grep(/^z/).sort.reverse
-z = z_wires.map { |w| WIRES[w].value ? "1" : "0" }.join.to_i(2)
+z_outputs = GATES_BY_OUTPUT_NAME.keys.grep(/^z/).sort.reverse
+z = z_outputs.map { |g| GATES_BY_OUTPUT_NAME[g].output_value }.join.to_i(2)
 
 part1 = z
 puts part1
 
-def find_output_wire(klass, input_names, swaps)
+def find_gate(klass, input_names, swaps)
   input_names.map! { swaps.fetch(_1, _1) }.sort!
 
-  wire = WIRES.values.detect do |w|
-    next unless w.gate.is_a? klass
-    next unless w.gate.input_names.sort == input_names
-
-    true
+  gate = GATES.grep(klass).detect do |g|
+    g.input_names.sort == input_names
   end
 
-  return wire if wire
+  return gate if gate
 
-  wire = WIRES.values.detect do |w|
-    next unless w.gate.is_a? klass
-    next unless input_names.any? { w.gate.input_names.include?(_1) }
-
-    true
+  gate = GATES.grep(klass).detect do |g|
+    input_names.any? { g.input_names.include?(_1) }
   end
 
-  missing_input_name = (input_names - wire.gate.input_names).first
-  extra_input_name = (wire.gate.input_names - input_names).first
+  missing_input_name = (input_names - gate.input_names).first
+  extra_input_name = (gate.input_names - input_names).first
 
   swaps[missing_input_name] = extra_input_name
   swaps[extra_input_name] = missing_input_name
 
-  wire
+  gate
 end
 
 swaps = {}
@@ -123,15 +112,15 @@ cout = nil
   x = "x#{i.to_s.rjust(2, "0")}"
   y = "y#{i.to_s.rjust(2, "0")}"
 
-  xor1 = find_output_wire(XorGate, [x, y], swaps)
-  and1 = find_output_wire(AndGate, [x, y], swaps)
+  xor1 = find_gate(XorGate, [x, y], swaps)
+  and1 = find_gate(AndGate, [x, y], swaps)
 
   cout = and1
 
   if cin
-    _xor2 = find_output_wire(XorGate, [xor1.name, cin.name], swaps)
-    and2 = find_output_wire(AndGate, [xor1.name, cin.name], swaps)
-    or1 = find_output_wire(OrGate, [and1.name, and2.name], swaps)
+    _xor2 = find_gate(XorGate, [xor1.output_name, cin.output_name], swaps)
+    and2 = find_gate(AndGate, [xor1.output_name, cin.output_name], swaps)
+    or1 = find_gate(OrGate, [and1.output_name, and2.output_name], swaps)
 
     cout = or1
   end
