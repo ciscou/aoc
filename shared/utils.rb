@@ -97,3 +97,51 @@ class BFS
     end
   end
 end
+
+class GridBFS < BFS
+  def initialize(grid, start_row, start_col)
+    @grid = grid
+    @start_row = start_row
+    @start_col = start_col
+
+    @v = Set.new
+  end
+
+  private
+
+  def initial_state
+    [@start_row, @start_col, []]
+  end
+
+  def neighbours(state)
+    row, col, path = state
+
+    ns = []
+
+    ns << [row - 1, col, path + [[row - 1, col]]]
+    ns << [row + 1, col, path + [[row + 1, col]]]
+    ns << [row, col - 1, path + [[row, col - 1]]]
+    ns << [row, col + 1, path + [[row, col + 1]]]
+
+    ns.select do |row, col, _path|
+      next false if row < 0
+      next false if col < 0
+      next false unless row < @grid.length
+      next false unless col < @grid[row].length
+
+      next false if @grid[row][col] == "#"
+
+      true
+    end
+  end
+
+  def visited?(state)
+    row, col, _path = state
+
+    if @v.add?([row, col])
+      false
+    else
+      true
+    end
+  end
+end
