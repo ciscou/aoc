@@ -1,57 +1,4 @@
-# stolen from https://gist.github.com/brianstorti/e20300eb2e7d62b87849
-class PriorityQueue
-  attr_reader :elements
-
-  def initialize
-    @elements = [nil]
-  end
-
-  def <<(element)
-    @elements << element
-    bubble_up(@elements.size - 1)
-  end
-
-  alias_method :push, :<<
-
-  def pop
-    exchange(1, @elements.size - 1)
-    max = @elements.pop
-    bubble_down(1)
-    max
-  end
-
-  private
-
-  def bubble_up(index)
-    parent_index = (index / 2)
-
-    return if index <= 1
-    return if @elements[parent_index][:priority] >= @elements[index][:priority]
-
-    exchange(index, parent_index)
-    bubble_up(parent_index)
-  end
-
-  def bubble_down(index)
-    child_index = (index * 2)
-
-    return if child_index > @elements.size - 1
-
-    not_the_last_element = child_index < @elements.size - 1
-    left_element = @elements[child_index]
-    right_element = @elements[child_index + 1]
-    child_index += 1 if not_the_last_element && right_element[:priority] > left_element[:priority]
-
-    return if @elements[index][:priority] >= @elements[child_index][:priority]
-
-    exchange(index, child_index)
-    bubble_down(child_index)
-  end
-
-  def exchange(source, target)
-    @elements[source], @elements[target] = @elements[target], @elements[source]
-  end
-end
+require_relative "../shared/utils"
 
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
@@ -74,50 +21,26 @@ H.times do |r|
   end
 end
 
-class Dijkstra
+class MyDijkstra < Dijkstra
   def initialize(reindeer_row, reindeer_col, reindeer_dr, reindeer_dc)
     @reindeer_row = reindeer_row
     @reindeer_col = reindeer_col
     @reindeer_dr = reindeer_dr
     @reindeer_dc = reindeer_dc
-  end
 
-  def execute
-    visited = {}
-
-    pq = PriorityQueue.new
-    pq.push(state: initial_state, priority: priority(initial_state))
-
-    best = nil
-    paths = []
-
-    loop do
-      node = pq.pop
-      break if node.nil?
-
-      state = node[:state]
-
-      r, c, dr, dc, cost, path = state
-
-      if GRID[r][c] == "E"
-        best = cost if best.nil?
-        break if cost > best
-
-        paths << path
-      end
-
-      next if visited[[r, c, dr, dc]] && visited[[r, c, dr, dc]] < cost
-      visited[[r, c, dr, dc]] = cost
-
-      neighbours(state).each do |next_state|
-        pq.push(state: next_state, priority: priority(next_state))
-      end
-    end
-
-    [best, paths]
+    @visited = {}
   end
 
   private
+
+  def visited?(state)
+    r, c, dr, dc, cost, _path = state
+
+    return true if @visited[[r, c, dr, dc]] && @visited[[r, c, dr, dc]] < cost
+    @visited[[r, c, dr, dc]] = cost
+
+    false
+  end
 
   def initial_state
     [
@@ -203,7 +126,20 @@ class Dijkstra
   end
 end
 
-best, paths = Dijkstra.new(reindeer_row, reindeer_col, reindeer_dr, reindeer_dc).execute
+
+best = nil
+paths = []
+
+MyDijkstra.new(reindeer_row, reindeer_col, reindeer_dr, reindeer_dc).execute.each do |state|
+  r, c, _dr, _dc, cost, path = state
+
+  if GRID[r][c] == "E"
+    best = cost if best.nil?
+    break if cost > best
+
+    paths << path
+  end
+end
 
 puts best
 
