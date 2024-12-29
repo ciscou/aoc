@@ -65,9 +65,9 @@ class Dijkstra
 
         state = node[:state]
 
-        y << state
-
         next if visited?(state)
+
+        y << state
 
         neighbours(state).each do |next_state|
           pq.push(state: next_state, priority: priority(next_state))
@@ -77,3 +77,23 @@ class Dijkstra
   end
 end
 
+class BFS
+  def execute
+    q = []
+    q.push(initial_state)
+
+    Enumerator.new do |y|
+      until q.empty?
+        state = q.shift
+
+        next if visited?(state)
+
+        y << state
+
+        neighbours(state).each do |next_state|
+          q.push(next_state)
+        end
+      end
+    end
+  end
+end
