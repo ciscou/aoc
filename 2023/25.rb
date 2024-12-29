@@ -13,11 +13,13 @@ INPUT.each do |line|
   end
 end
 
-class KargersAlgorithm
+class KargerAlgorithm
   def initialize(vertices, edges)
     @vertices = vertices
     @edges = edges
   end
+
+  attr_reader :min_cut, :components, :min_cut_edges
 
   def execute
     @parent = @vertices.each_with_object({}) { |v, h| h[v] = v }
@@ -40,18 +42,24 @@ class KargersAlgorithm
       @edges.delete(edge)
     end
 
-    ans = 0
+    @min_cut = 0
 
     @edges.each do |u, w|
       uroot = find(u)
       wroot = find(w)
 
       if uroot != wroot
-        ans += 1
+        @min_cut += 1
       end
     end
 
-    ans
+    @components = @vertices.each_with_object(Hash.new { |h, k| h[k] = [] }) do |vertex, h|
+      h[find(vertex)] << vertex
+    end.values
+
+    @min_cut_edges = @edges.reject do |a, b|
+      find(a) == find(b)
+    end
   end
 
   private
@@ -78,26 +86,13 @@ class KargersAlgorithm
   end
 end
 
-def find_superparent(parent, v)
-  if parent[v] == v
-    v
-  else
-    find_superparent(parent, parent[v])
-  end
-end
-
-results = Set.new
-1_000.times do
-  alg = KargersAlgorithm.new(vertices.to_a, edges.to_a)
-  res = alg.execute
-  results << res
-  if res == 3
-    parent = alg.instance_variable_get(:@parent)
-    superparent = {}
-    parent.keys.each do |k|
-      superparent[k] = find_superparent(parent, k)
-    end
-    p superparent.values.tally.values.reduce(:*)
+loop do
+  karger = KargerAlgorithm.new(vertices.to_a, edges.to_a)
+  karger.execute
+  if karger.min_cut == 3
+    # p karger.components.map(&:sort)
+    # p karger.min_cut_edges
+    puts karger.components.map(&:length).reduce(:*)
     break
   end
 end
