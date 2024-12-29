@@ -74,52 +74,136 @@ H.times do |r|
   end
 end
 
-pq = PriorityQueue.new
-
-pq.push(state: [reindeer_row, reindeer_col, reindeer_dr, reindeer_dc, [[reindeer_row, reindeer_col]]], priority: 0)
-
-visited = {}
-
-best = nil
-paths = []
-
-loop do
-  node = pq.pop
-  break if node.nil?
-
-  state, priority = node.values_at(:state, :priority)
-
-  cost = -priority
-
-  r, c, dr, dc, path = state
-
-  next if r < 0
-  next if c < 0
-  next unless r < H
-  next unless c < W
-
-  next if GRID[r][c] == "#"
-
-  if GRID[r][c] == "E"
-    best = cost if best.nil?
-    break if cost > best
-
-    paths << path
+class Dijkstra
+  def initialize(reindeer_row, reindeer_col, reindeer_dr, reindeer_dc)
+    @reindeer_row = reindeer_row
+    @reindeer_col = reindeer_col
+    @reindeer_dr = reindeer_dr
+    @reindeer_dc = reindeer_dc
   end
 
-  next if visited[[r, c, dr, dc]] && visited[[r, c, dr, dc]] < cost
-  visited[[r, c, dr, dc]] = cost
+  def execute
+    visited = {}
 
-  pq.push(state: [r + dr, c + dc, dr, dc, path + [[r + dr, c + dc]]], priority: -(cost + 1))
+    pq = PriorityQueue.new
+    pq.push(state: initial_state, priority: priority(initial_state))
 
-  if dr == 0
-    pq.push(state: [r, c, 1, 0, path], priority: -(cost + 1000))
-    pq.push(state: [r, c, -1, 0, path], priority: -(cost + 1000))
-  else
-    pq.push(state: [r, c, 0, 1, path], priority: -(cost + 1000))
-    pq.push(state: [r, c, 0, -1, path], priority: -(cost + 1000))
+    best = nil
+    paths = []
+
+    loop do
+      node = pq.pop
+      break if node.nil?
+
+      state = node[:state]
+
+      r, c, dr, dc, cost, path = state
+
+      if GRID[r][c] == "E"
+        best = cost if best.nil?
+        break if cost > best
+
+        paths << path
+      end
+
+      next if visited[[r, c, dr, dc]] && visited[[r, c, dr, dc]] < cost
+      visited[[r, c, dr, dc]] = cost
+
+      neighbours(state).each do |next_state|
+        pq.push(state: next_state, priority: priority(next_state))
+      end
+    end
+
+    [best, paths]
+  end
+
+  private
+
+  def initial_state
+    [
+      @reindeer_row,
+      @reindeer_col,
+      @reindeer_dr,
+      @reindeer_dc,
+      0,
+      [
+        [
+          @reindeer_row,
+          @reindeer_col,
+        ],
+      ],
+    ]
+  end
+
+  def neighbours(state)
+    r, c, dr, dc, cost, path = state
+
+    ns = []
+
+    ns << [
+      r + dr,
+      c + dc,
+      dr,
+      dc,
+      cost + 1,
+      path + [[r + dr, c + dc]],
+    ]
+
+    if dr == 0
+      ns << [
+        r,
+        c,
+        1,
+        0,
+        cost + 1_000,
+        path,
+      ]
+      ns << [
+        r,
+        c,
+        -1,
+        0,
+        cost + 1_000,
+        path,
+      ]
+    else
+      ns << [
+        r,
+        c,
+        0,
+        1,
+        cost + 1_000,
+        path,
+      ]
+      ns << [
+        r,
+        c,
+        0,
+        -1,
+        cost + 1_000,
+        path,
+      ]
+    end
+
+    ns.select do |r, c, _dr, _dc, _cost, _path|
+      next false if r < 0
+      next false if c < 0
+      next false unless r < H
+      next false unless c < W
+
+      next false if GRID[r][c] == "#"
+
+      true
+    end
+  end
+
+  def priority(state)
+    _r, _c, _dr, _dc, cost, _path = state
+    -cost
   end
 end
+
+best, paths = Dijkstra.new(reindeer_row, reindeer_col, reindeer_dr, reindeer_dc).execute
 
 puts best
 
