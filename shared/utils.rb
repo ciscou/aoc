@@ -113,7 +113,7 @@ class GridBFS < BFS
     [@start_row, @start_col, []]
   end
 
-  def neighbours(state)
+  def adjacent(state)
     row, col, path = state
 
     ns = []
@@ -129,7 +129,20 @@ class GridBFS < BFS
       next false unless row < @grid.length
       next false unless col < @grid[row].length
 
-      next false if @grid[row][col] == "#"
+      true
+    end
+  end
+
+  def can_move?(_from, to)
+    to != "#"
+  end
+
+  def neighbours(state)
+    row, col = state
+    from = @grid[row][col]
+
+    adjacent(state).select do |next_row, next_col, _next_path|
+      next false unless can_move?(from, @grid[next_row][next_col])
 
       true
     end
