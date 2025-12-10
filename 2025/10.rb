@@ -1,6 +1,6 @@
 require_relative "../shared/utils"
 
-class MyBFS < BFS
+class Part1BFS < BFS
   def initialize(machine)
     @machine = machine
     @seen = Set.new
@@ -27,6 +27,37 @@ class MyBFS < BFS
   end
 end
 
+class Part2BFS < BFS
+  def initialize(machine)
+    @machine = machine
+    @seen = Set.new
+  end
+
+  def initial_state
+    [@machine[:joltages].map { 0 }, []]
+  end
+
+  def visited?(state)
+    joltages, _pressed = state
+
+    !@seen.add?(joltages)
+  end
+
+  def neighbours(state)
+    joltages, pressed = state
+
+    @machine[:buttons].map do |buttons|
+      next_joltages = joltages.dup
+      buttons.each { next_joltages[it] += 1 }
+      [next_joltages, pressed + [buttons]]
+    end.reject do |next_joltages, _pressed|
+      next_joltages.each_with_index.any? do |joltage, i|
+        joltage > @machine[:joltages][i]
+      end
+    end
+  end
+end
+
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
 machines = INPUT.map do |line|
@@ -41,7 +72,7 @@ end
 part1 = 0
 
 machines.each do |machine|
-  my_bfs = MyBFS.new(machine)
+  my_bfs = Part1BFS.new(machine)
   my_bfs.execute.each do |state|
     lights, pressed = state
     if lights == machine[:lights]
@@ -52,3 +83,19 @@ machines.each do |machine|
 end
 
 puts part1
+
+part2 = 0
+
+machines.each do |machine|
+  my_bfs = Part2BFS.new(machine)
+  my_bfs.execute.each do |state|
+    joltages, pressed = state
+    if joltages == machine[:joltages]
+      part2 += pressed.length
+      puts part2
+      break
+    end
+  end
+end
+
+puts part2
