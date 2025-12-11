@@ -1,5 +1,3 @@
-require_relative "../shared/utils"
-
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
 flow = INPUT.each_with_object({}) do |line, h|
@@ -7,53 +5,35 @@ flow = INPUT.each_with_object({}) do |line, h|
   h[a] = bs.split(" ")
 end
 
-class Part1BFS < BFS
-  def initialize(flow, from)
-    @flow = flow
-    @from = from
-  end
+nodes_to = Hash.new { |h, k| h[k] = [] }
 
-  def initial_state
-    @from
-  end
-
-  def visited?(_state)
-    false
-  end
-
-  def neighbours(state)
-    @flow[state] || []
+flow.each do |k, vs|
+  vs.each do |v|
+    nodes_to[v] << k
   end
 end
 
-part1 = 0
-
-my_bfs = Part1BFS.new(flow, "you")
-my_bfs.execute.each do |state|
-  part1 += 1 if state == "out"
+def build_cache_from(nodes_to, from)
+  Hash.new do |h, k|
+    if k == from
+      h[k] = 1
+    else
+      h[k] = nodes_to[k].sum { h[it] }
+    end
+  end
 end
 
+cache_from_you = build_cache_from(nodes_to, "you")
+part1 = cache_from_you["out"]
 puts part1
 
-class Part2BFS < BFS
-  def initialize(flow)
-    @flow = flow
-    @seen = Set.new
-  end
+cache_from_svr = build_cache_from(nodes_to, "svr")
+cache_from_fft = build_cache_from(nodes_to, "fft")
+cache_from_dac = build_cache_from(nodes_to, "dac")
 
-  def initial_state
-    ["svr", false, false]
-  end
+part2 = [
+  cache_from_svr["dac"] * cache_from_dac["fft"] * cache_from_fft["out"],
+  cache_from_svr["fft"] * cache_from_fft["dac"] * cache_from_dac["out"]
+].sum
 
-  def visited?(state)
-    # !@seen.add?(state)
-  end
-
-  def neighbours(state)
-    node, dac, fft = state
-    dac = true if node == "dac"
-    fft = true if node == "fft"
-
-    (@flow[node] || []).map { [it, dac, fft] }
-  end
-end
+puts part2
