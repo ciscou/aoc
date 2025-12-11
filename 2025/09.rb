@@ -1,4 +1,4 @@
-require "json"
+# usage: RUBY_THREAD_VM_STACK_SIZE=1000000000000 ruby 09.rb
 
 INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
 
@@ -57,8 +57,9 @@ puts part1
 
 # corner compression
 
-xs = corners.map(&:first).sort.uniq
-ys = corners.map(&:last).sort.uniq
+# do not compress too much so that borders don't touch
+xs = corners.flat_map { |x, _| [x-1, x, x+1] }.sort.uniq
+ys = corners.flat_map { |_, y| [y-1, y, y+1] }.sort.uniq
 
 compressed_corners = corners.map do |x, y|
   [xs.index(x), ys.index(y)]
@@ -96,7 +97,7 @@ end
 # grid.each { puts it.join }
 
 # flood_fill(grid, 2, 1)
-flood_fill(grid, 100, 100)
+flood_fill(grid, 480, 150)
 
 # puts
 # grid.each { puts it.join }
@@ -118,19 +119,18 @@ end.compact.sort_by(&:last)
 # puts
 
 # puts grid.to_json
-pp part2.last(2)
+pp part2.last.last
 
-if false
-x1, y1, x2, y2 = part2[-1]
+_, _, _, _, x1, y1, x2, y2 = part2[-1]
 x1, x2 = [x1, x2].minmax
 y1, y2 = [y1, y2].minmax
 (x1..x2).each do |x|
   (y1..y2).each do |y|
-    # grid[y][x] = "."
+    grid[y][x] = "."
   end
 end
 
-File.open("grid1bis.ppm", "w") do |f|
+File.open("grid1.ppm", "w") do |f|
   f.puts "P2"
   f.puts [grid.first.length, grid.length].join(" ")
   f.puts 15
@@ -145,5 +145,4 @@ File.open("grid1bis.ppm", "w") do |f|
     end
     f.puts line.join(" ")
   end
-end
 end
