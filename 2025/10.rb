@@ -1,3 +1,5 @@
+INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
+
 require_relative "../shared/utils"
 
 class Part1BFS < BFS
@@ -27,26 +29,6 @@ class Part1BFS < BFS
   end
 end
 
-def part2_backtracking(buttons, joltages, goal, offset=0, cache={})
-  cache_key = [goal, offset]
-  if cache.key?(cache_key)
-    return cache[cache_key]
-  end
-  return 0 if goal.uniq == [0]
-  return Float::INFINITY if goal.any? { it < 0 }
-  return Float::INFINITY if offset >= buttons.length
-
-  next_goal = goal.dup
-  buttons[offset].each { next_goal[it] -= 1 }
-
-  cache[cache_key] = [
-    part2_backtracking(buttons, joltages, goal, offset + 1, cache), # do not press this button
-    part2_backtracking(buttons, joltages, next_goal, offset, cache) + 1, # press this button
-  ].min
-end
-
-INPUT = File.readlines(__FILE__.sub('.rb', '.txt'), chomp: true)
-
 machines = INPUT.map do |line|
   parts = line.split
   lights = parts[0][1..-2].chars.map { it == "#" }
@@ -59,9 +41,9 @@ end
 part1 = 0
 
 machines.each do |machine|
-  my_bfs = Part1BFS.new(machine)
-  my_bfs.execute.each do |state|
+  Part1BFS.new(machine).execute.each do |state|
     lights, pressed = state
+
     if lights == machine[:lights]
       part1 += pressed
       break
@@ -71,85 +53,33 @@ end
 
 puts part1
 
-if false
-machines.each do |machine|
-  is = []
+part2 = machines.sum do |machine|
+  File.open("10p2.dat", "w") do |f|
+    f.puts "set counters := #{machine[:joltages].length.times.map { "c#{it}" }.join(" ")};"
+    f.puts "set buttons := #{machine[:buttons].length.times.map { "b#{it}" }.join(" ")};"
 
-  machine[:buttons].each do |buttons|
-    joltages = machine[:joltages].dup
-    i = 0
+    f.puts
 
-    loop do
-      break if joltages.any?(&:negative?)
-
-      buttons.each { joltages[it] -= 1 }
-      i += 1
+    f.puts "param: goal_joltages :="
+    machine[:joltages].each_with_index do |joltage, i|
+      f.puts "  #{"c#{i}"} #{joltage}"
     end
+    f.puts ";"
 
-    is << i
-  end
+    f.puts
 
-  puts is.reduce(:*)
-end
-
-puts "here it comes"
-
-part2 = 0
-
-machines.each do |machine|
-  kk = part2_backtracking(machine[:buttons], machine[:joltages].map { 0 }, machine[:joltages])
-  puts kk
-  part2 += kk
-end
-
-puts part2
-
-exit(0)
-end
-
-part2 = 0
-
-LETTERS = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
-
-machines.each do |machine|
-  equations = machine[:joltages].map.with_index do |joltage, i|
-    [
-      machine[:buttons].filter_map.with_index { |b, j| LETTERS[j] if b.include?(i) }.join(" + "),
-      joltage
-    ].join(" = ")
-  end
-  # puts equations
-  # response = Faraday.post("https://www.symbolab.com/pub_api/bridge/solution", query: equations.join(", "))
-  # puts JSON.parse(response.body).dig("solution", "solution", "default")
-  # puts
-  # gets
-
-  File.open("10.mod", "w") do |f|
-    variables = LETTERS.take(machine[:buttons].length)
-    variables.each { f.puts "var #{it} >= 0, integer;" }
-    equations.each_with_index do |eq, i|
-      f.puts "s.t. eq#{i}: #{eq};"
+    f.puts "param button_joltages (tr):"
+    f.puts "     #{machine[:joltages].length.times.map { "c#{it}" }.join(" ")} :="
+    machine[:buttons].each_with_index do |button, i|
+      joltages = machine[:joltages].length.times.map { button.include?(it) ? 1 : 0 }
+      f.puts "  #{["b", i].join}  #{joltages.join("  ")}"
     end
-    f.puts "minimize obj: #{variables.join("+")};"
-    f.puts "solve;"
-    f.puts %(printf "%g\\n", #{variables.join("+")};)
-    f.puts "end;"
+    f.puts ";"
   end
 
-  output = `glpsol --model 10.mod`
-  part2 += output.lines[-2].to_i
+  `glpsol --model 10p2.mod --data 10p2.dat --write 10p2.out`
 
-  # gets
-end
-
-puts part2
-
-exit(0)
-
-part2 = 0
-
-machines.each do |machine|
-  part2 += part2_backtracking(machine[:buttons], machine[:joltages].map { 0 }, machine[:joltages])
+  File.readlines("10p2.out")[5][30..].to_i
 end
 
 puts part2
