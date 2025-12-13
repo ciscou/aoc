@@ -1001,15 +1001,6 @@ pos=<54309320,32025673,46656637>, r=50321330
 pos=<44162848,15688671,84305371>, r=94160675
 EOS
 
-input = <<EOS
-pos=<10,12,12>, r=2
-pos=<12,14,12>, r=2
-pos=<16,12,12>, r=4
-pos=<14,14,14>, r=6
-pos=<50,50,50>, r=200
-pos=<10,10,10>, r=5
-EOS
-
 nanobots = input.lines.map do |line|
   line.chomp!
 
@@ -1028,29 +1019,41 @@ in_range = nanobots.select do |nanobot|
   distance = nanobot[:pos].zip(strongest[:pos]).sum do |p1, p2|
     (p2 - p1).abs
   end
-  distance < strongest[:r]
+  distance <= strongest[:r]
 end
 
 puts in_range.length
 
-best = Hash.new(0)
+require "z3"
 
-nanobots.each do |nanobot|
-  p nanobot
-
-  r1 = nanobot[:r]
-  (-r1..r1).each do |dx|
-    r2 = nanobot[:r] - dx
-    (-r2..r2).each do |dy|
-      r3 = nanobot[:r] - dy - dx
-      (-r3..r3).each do |dz|
-        x, y, z = nanobot[:pos]
-        best[[x + dx, y + dy, z + dz]] += 1
-      end
-    end
-  end
+def zabs(x)
+  Z3::IfThenElse(x < 0, -x , x)
 end
 
-puts "best"
+x, y, z = %w[x y z].map { Z3::Int(it) }
 
-best.sort_by(&:last).select { |k, v| v > 1 }.each(&method(:p))
+in_range = nanobots.length.times.map { |i| Z3::Int(["in_range", i].join("_")) }
+
+sum = Z3::Int("sum")
+
+o = Z3::Optimize.new
+
+nanobots.each_with_index do |n, i|
+  o.assert(in_range[i] == Z3::IfThenElse(zabs(x - n[:pos][0]) + zabs(y - n[:pos][1]) + zabs(z - n[:pos][2]) <= n[:r], 1, 0))
+end
+
+o.assert(sum == in_range.sum)
+
+distance_from_o = Z3::Int("distance_from_o")
+
+o.assert(distance_from_o == zabs(x) + zabs(y) + zabs(z))
+
+o.maximize(sum)
+o.minimize(distance_from_o)
+
+if o.satisfiable?
+  puts o.model[sum].to_i
+  puts o.model[distance_from_o].to_i
+else
+  raise "no sol"
+end
