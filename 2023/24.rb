@@ -24,8 +24,8 @@ end
 hailstones = INPUT.map do |line|
   pos, vel = line.split(" @ ")
   {
-    pos: pos.split(", ").map { BigDecimal(_1) },
-    vel: vel.split(", ").map { BigDecimal(_1) },
+    pos: pos.split(", ").map(&:to_i),
+    vel: vel.split(", ").map(&:to_i),
   }
 end
 
@@ -63,3 +63,55 @@ part1 = intersections.count do |k, v|
   true
 end
 puts part1
+
+require "z3"
+
+x, y, z, vx, vy, vz = %w[x y z vx vy vz].map { Z3::Int(it) }
+
+solver = Z3::Solver.new
+
+# solver.assert(x == 191537613659010) this comes from hailstones.take(3)
+# solver.assert(y == 238270932096689) this comes from hailstones.take(3)
+# solver.assert(z == 137106090006865) this comes from hailstones.take(3)
+
+solver.assert(vx > -400)
+solver.assert(vy > -400)
+solver.assert(vz > -400)
+solver.assert(vx < 400)
+solver.assert(vy < 400)
+solver.assert(vz < 400)
+
+hailstones.each_with_index do |hailstone, i|
+  t = Z3::Int(["t", i].join("_"))
+
+  x_pos_at_t = Z3::Int(["x_pos_at_t", i].join("_"))
+  y_pos_at_t = Z3::Int(["y_pos_at_t", i].join("_"))
+  z_pos_at_t = Z3::Int(["z_pos_at_t", i].join("_"))
+
+  solver.assert(x_pos_at_t == t * hailstone[:vel][0] + hailstone[:pos][0])
+  solver.assert(y_pos_at_t == t * hailstone[:vel][1] + hailstone[:pos][1])
+  solver.assert(z_pos_at_t == t * hailstone[:vel][2] + hailstone[:pos][2])
+
+  solver.assert(x_pos_at_t == t * vx + x)
+  solver.assert(y_pos_at_t == t * vy + y)
+  solver.assert(z_pos_at_t == t * vz + z)
+end
+
+if solver.satisfiable?
+  # puts solver.model[x].to_i
+  # puts solver.model[y].to_i
+  # puts solver.model[z].to_i
+  # puts solver.model[vx].to_i
+  # puts solver.model[vy].to_i
+  # puts solver.model[vz].to_i
+
+  # puts
+
+  puts [
+    solver.model[x].to_i,
+    solver.model[y].to_i,
+    solver.model[z].to_i,
+  ].sum
+else
+  raise "uh oh..."
+end
